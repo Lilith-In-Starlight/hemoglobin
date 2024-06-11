@@ -1,0 +1,11 @@
+[package]
+name = "hemoglobin"
+description = "Utilities for Bloodless"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+authors = "Arity <katie-and@ampersandia.net>"
+
+[dependencies]
+rust-fuzzy-search = "0.1.1"
+serde = { version = "1.0.203", features = ["derive"] }
