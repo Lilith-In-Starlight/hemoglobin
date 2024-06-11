@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Card {
     pub id: String,
     pub name: String,
@@ -89,7 +89,7 @@ impl Card {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct CardID {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -166,14 +166,14 @@ impl CardID {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
     CardID(CardID),
     String(String),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Keyword {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
