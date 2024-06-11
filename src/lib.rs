@@ -47,9 +47,13 @@ pub fn apply_restrictions<'a>(
         .collect();
 
     results.sort_by(|a, b| {
-        weighted_compare(b, &name)
-            .partial_cmp(&weighted_compare(a, &name))
-            .unwrap_or(std::cmp::Ordering::Equal)
+        if name.is_empty() {
+            Ord::cmp(&a.name, &b.name)
+        } else {
+            weighted_compare(b, &name)
+                .partial_cmp(&weighted_compare(a, &name))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }
     });
 
     results
