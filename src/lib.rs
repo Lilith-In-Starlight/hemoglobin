@@ -8,13 +8,12 @@ pub mod cards;
 pub mod search;
 
 #[must_use]
-pub fn apply_restrictions<'a>(
+pub fn apply_restrictions<'a, T: Iterator<Item = &'a Card>>(
     query_restrictions: &[QueryRestriction],
-    cards: &'a [Card],
+    cards: T,
 ) -> Vec<&'a Card> {
     let mut name = String::new();
     let mut results: Vec<&Card> = cards
-        .iter()
         .filter(|card| {
             let mut filtered = true;
             for res in query_restrictions {
