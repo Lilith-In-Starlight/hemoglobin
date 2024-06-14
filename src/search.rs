@@ -31,6 +31,7 @@ impl Comparison {
     }
 }
 
+#[derive(Debug)]
 pub enum Errors {
     InvalidComparisonString,
     UnknownParam,
@@ -56,4 +57,5 @@ pub enum QueryRestriction {
     Contains(Box<dyn Fn(&Card) -> &str>, String),
     Has(Box<dyn Fn(&Card) -> &[String]>, String),
     HasKw(Box<dyn Fn(&Card) -> &[Keyword]>, String),
+    Not(Vec<QueryRestriction>),
 }

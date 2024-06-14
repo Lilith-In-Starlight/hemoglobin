@@ -7,6 +7,7 @@ enum Token {
     Word(String),
     Param(String, String),
     SuperParam(String, Vec<Token>),
+    Not(Vec<Token>),
 }
 
 enum TokenMode {
@@ -21,11 +22,20 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut word = String::new();
     let mut mode = TokenMode::Word;
     let mut paren_count = 0;
+    let mut real = false;
     for ch in q.chars().chain(vec!['\n']) {
         match mode {
             TokenMode::Word => match ch {
+                '-' => {
+                    real = true;
+                }
                 ' ' | '\n' => {
-                    tokens.push(Token::Word(word));
+                    if real {
+                        tokens.push(Token::Word(word));
+                    } else {
+                        tokens.push(Token::Not(vec![Token::Word(word)]));
+                    }
+                    real = true;
                     word = String::new();
                 }
                 ':' => {
@@ -40,7 +50,13 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             },
             TokenMode::Param(ref param) => match ch {
                 ' ' | '\n' => {
-                    tokens.push(Token::Param(param.to_string(), word));
+                    let tok = Token::Param(param.to_string(), word);
+                    if real {
+                        tokens.push(tok);
+                    } else {
+                        tokens.push(Token::Not(vec![tok]));
+                        real = true;
+                    }
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -54,7 +70,13 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             },
             TokenMode::QParam(ref param) => match ch {
                 '"' => {
-                    tokens.push(Token::Param(param.to_string(), word));
+                    let tok = Token::Param(param.to_string(), word);
+                    if real {
+                        tokens.push(tok);
+                    } else {
+                        tokens.push(Token::Not(vec![tok]));
+                        real = true;
+                    }
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -62,7 +84,13 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             },
             TokenMode::SParam(ref param) => match ch {
                 ')' if paren_count == 0 => {
-                    tokens.push(Token::SuperParam(param.to_string(), tokenize_query(&word)?));
+                    let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
+                    if real {
+                        tokens.push(tok);
+                    } else {
+                        tokens.push(Token::Not(vec![tok]));
+                        real = true;
+                    }
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -81,13 +109,10 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     Ok(tokens)
 }
 
-/// # Errors
-/// Whenever a query cannot be parsed
-pub fn query_parser(q: &str) -> Result<Vec<QueryRestriction>, Errors> {
-    let q = tokenize_query(q)?;
+fn parse_tokens(q: &[Token]) -> Result<Vec<QueryRestriction>, Errors> {
     let mut restrictions = vec![];
     let mut string = String::new();
-    for word in &q {
+    for word in q {
         match word {
             Token::Word(x) => {
                 string.push_str(x);
@@ -143,11 +168,21 @@ pub fn query_parser(q: &str) -> Result<Vec<QueryRestriction>, Errors> {
                     todo!();
                 }
             }
+            Token::Not(tokens) => {
+                restrictions.push(QueryRestriction::Not(parse_tokens(tokens)?));
+            }
         }
     }
     let string = string.trim().to_string();
     restrictions.push(QueryRestriction::Fuzzy(string));
     Ok(restrictions)
+}
+
+/// # Errors
+/// Whenever a query cannot be parsed
+pub fn query_parser(q: &str) -> Result<Vec<QueryRestriction>, Errors> {
+    let q = tokenize_query(q)?;
+    parse_tokens(&q)
 }
 
 fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
