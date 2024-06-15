@@ -30,62 +30,198 @@ pub struct Card {
     pub functions: Vec<String>,
 }
 
-impl Card {
-    #[must_use]
-    pub fn get_cost(&self) -> usize {
-        self.cost
+pub trait ReadProperties {
+    fn get_num_property(&self, property: &NumberProperties) -> Option<usize>;
+    fn get_str_property(&self, property: &StringProperties) -> Option<&str>;
+    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]>;
+    fn get_keywords(&self) -> Option<&[Keyword]>;
+    fn get_name(&self) -> Option<&str>;
+    fn get_description(&self) -> Option<&str>;
+    fn get_type(&self) -> Option<&str>;
+    fn get_kins(&self) -> Option<&[String]>;
+}
+
+impl ReadProperties for Card {
+    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+        Some(match property {
+            NumberProperties::Cost => self.cost,
+            NumberProperties::Health => self.health,
+            NumberProperties::Defense => self.defense,
+            NumberProperties::Power => self.power,
+        })
     }
-    #[must_use]
-    pub fn get_name(&self) -> &str {
-        &self.name
+
+    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+        Some(match property {
+            StringProperties::Name => &self.name,
+            StringProperties::Type => &self.r#type,
+            StringProperties::Description => &self.description,
+        })
     }
-    #[must_use]
-    pub fn get_type(&self) -> &str {
-        &self.r#type
+
+    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+        Some(match property {
+            ArrayProperties::Functions => &self.functions,
+            ArrayProperties::Kins => &self.kins,
+        })
     }
-    #[must_use]
-    pub fn get_kins(&self) -> &[String] {
-        &self.kins
+
+    fn get_keywords(&self) -> Option<&[Keyword]> {
+        Some(&self.keywords)
     }
-    #[must_use]
-    pub fn get_keywords(&self) -> &[Keyword] {
-        &self.keywords
+
+    fn get_name(&self) -> Option<&str> {
+        Some(&self.name)
     }
-    #[must_use]
-    pub fn get_health(&self) -> usize {
-        self.health
+
+    fn get_description(&self) -> Option<&str> {
+        Some(&self.description)
     }
-    #[must_use]
-    pub fn get_power(&self) -> usize {
-        self.power
+
+    fn get_type(&self) -> Option<&str> {
+        Some(&self.r#type)
     }
-    #[must_use]
-    pub fn get_defense(&self) -> usize {
-        self.defense
+
+    fn get_kins(&self) -> Option<&[String]> {
+        Some(&self.kins)
     }
-    #[must_use]
-    pub fn get_abilities(&self) -> &[String] {
-        &self.abilities
+}
+
+impl ReadProperties for &Card {
+    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+        Some(match property {
+            NumberProperties::Cost => self.cost,
+            NumberProperties::Health => self.health,
+            NumberProperties::Defense => self.defense,
+            NumberProperties::Power => self.power,
+        })
     }
-    #[must_use]
-    pub fn get_artists(&self) -> &[String] {
-        &self.artists
+
+    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+        Some(match property {
+            StringProperties::Name => &self.name,
+            StringProperties::Type => &self.r#type,
+            StringProperties::Description => &self.description,
+        })
     }
-    #[must_use]
-    pub fn get_set(&self) -> &str {
-        &self.set
+
+    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+        Some(match property {
+            ArrayProperties::Functions => &self.functions,
+            ArrayProperties::Kins => &self.kins,
+        })
     }
-    #[must_use]
-    pub fn get_description(&self) -> &str {
-        &self.description
+
+    fn get_keywords(&self) -> Option<&[Keyword]> {
+        Some(&self.keywords)
     }
-    #[must_use]
-    pub fn get_legality(&self) -> &HashMap<String, String> {
-        &self.legality
+
+    fn get_name(&self) -> Option<&str> {
+        Some(&self.name)
     }
-    #[must_use]
-    pub fn get_functions(&self) -> &[String] {
-        &self.functions
+
+    fn get_description(&self) -> Option<&str> {
+        Some(&self.description)
+    }
+
+    fn get_type(&self) -> Option<&str> {
+        Some(&self.r#type)
+    }
+
+    fn get_kins(&self) -> Option<&[String]> {
+        Some(&self.kins)
+    }
+}
+
+impl ReadProperties for CardID {
+    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+        match property {
+            NumberProperties::Cost => self.cost,
+            NumberProperties::Health => self.health,
+            NumberProperties::Defense => self.defense,
+            NumberProperties::Power => self.power,
+        }
+    }
+
+    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+        match property {
+            StringProperties::Name => self.name.as_deref(),
+            StringProperties::Type => self.r#type.as_deref(),
+            StringProperties::Description => self.description.as_deref(),
+        }
+    }
+
+    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+        match property {
+            ArrayProperties::Functions => self.functions.as_deref(),
+            ArrayProperties::Kins => self.kins.as_deref(),
+        }
+    }
+
+    fn get_keywords(&self) -> Option<&[Keyword]> {
+        self.keywords.as_deref()
+    }
+
+    fn get_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    fn get_description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    fn get_type(&self) -> Option<&str> {
+        self.r#type.as_deref()
+    }
+
+    fn get_kins(&self) -> Option<&[String]> {
+        self.kins.as_deref()
+    }
+}
+
+impl ReadProperties for &CardID {
+    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+        match property {
+            NumberProperties::Cost => self.cost,
+            NumberProperties::Health => self.health,
+            NumberProperties::Defense => self.defense,
+            NumberProperties::Power => self.power,
+        }
+    }
+
+    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+        match property {
+            StringProperties::Name => self.name.as_deref(),
+            StringProperties::Type => self.r#type.as_deref(),
+            StringProperties::Description => self.description.as_deref(),
+        }
+    }
+
+    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+        match property {
+            ArrayProperties::Functions => self.functions.as_deref(),
+            ArrayProperties::Kins => self.kins.as_deref(),
+        }
+    }
+
+    fn get_keywords(&self) -> Option<&[Keyword]> {
+        self.keywords.as_deref()
+    }
+
+    fn get_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    fn get_description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    fn get_type(&self) -> Option<&str> {
+        self.r#type.as_deref()
+    }
+
+    fn get_kins(&self) -> Option<&[String]> {
+        self.kins.as_deref()
     }
 }
 
@@ -119,53 +255,6 @@ pub struct CardID {
     pub functions: Option<Vec<String>>,
 }
 
-impl CardID {
-    #[must_use]
-    pub fn get_cost(&self) -> Option<usize> {
-        self.cost
-    }
-    #[must_use]
-    pub fn get_name(&self) -> Option<&str> {
-        self.name.as_deref()
-    }
-    #[must_use]
-    pub fn get_type(&self) -> Option<&str> {
-        self.r#type.as_deref()
-    }
-    #[must_use]
-    pub fn get_kins(&self) -> Option<&[String]> {
-        self.kins.as_deref()
-    }
-    #[must_use]
-    pub fn get_keywords(&self) -> Option<&[Keyword]> {
-        self.keywords.as_deref()
-    }
-    #[must_use]
-    pub fn get_health(&self) -> Option<usize> {
-        self.health
-    }
-    #[must_use]
-    pub fn get_power(&self) -> Option<usize> {
-        self.power
-    }
-    #[must_use]
-    pub fn get_defense(&self) -> Option<usize> {
-        self.defense
-    }
-    #[must_use]
-    pub fn get_abilities(&self) -> Option<&[String]> {
-        self.abilities.as_deref()
-    }
-    #[must_use]
-    pub fn get_description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-    #[must_use]
-    pub fn get_functions(&self) -> Option<&[String]> {
-        self.functions.as_deref()
-    }
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
@@ -178,4 +267,25 @@ pub struct Keyword {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<KeywordData>,
+}
+
+#[derive(Debug)]
+pub enum NumberProperties {
+    Cost,
+    Health,
+    Power,
+    Defense,
+}
+
+#[derive(Debug)]
+pub enum ArrayProperties {
+    Functions,
+    Kins,
+}
+
+#[derive(Debug)]
+pub enum StringProperties {
+    Name,
+    Type,
+    Description,
 }

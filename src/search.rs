@@ -1,14 +1,20 @@
 pub mod query_parser;
 use serde::Deserialize;
 
-use crate::cards::{Card, Keyword};
+use crate::cards::{ArrayProperties, NumberProperties, ReadProperties, StringProperties};
+
+#[derive(Debug)]
+pub struct Query {
+    pub name: String,
+    pub restrictions: Vec<QueryRestriction>,
+}
 
 #[derive(Deserialize)]
 pub struct QueryParams {
     pub query: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum Comparison {
     GreaterThan(usize),
     GreaterThanOrEqual(usize),
@@ -29,6 +35,13 @@ impl Comparison {
             Comparison::LowerThanOrEqual(x) => a <= x,
         }
     }
+
+    pub fn maybe_compare<T: PartialOrd<usize>>(&self, a: Option<T>, default: bool) -> bool {
+        match a {
+            Some(a) => self.compare(&a),
+            None => default,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -38,24 +51,30 @@ pub enum Errors {
 }
 
 #[must_use]
-pub fn fuzzy(card: &Card, query: &str) -> bool {
-    card.description
-        .to_lowercase()
-        .contains(&query.to_lowercase())
-        || card.name.to_lowercase().contains(&query.to_lowercase())
-        || card.r#type.to_lowercase().contains(&query.to_lowercase())
-        || card.kins.iter().any(|x| x.contains(&query.to_lowercase()))
+pub fn fuzzy(card: &impl ReadProperties, query: &str) -> bool {
+    card.get_description()
+        .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
         || card
-            .keywords
-            .iter()
-            .any(|x| x.name.contains(&query.to_lowercase()))
+            .get_name()
+            .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
+        || card
+            .get_type()
+            .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
+        || card
+            .get_kins()
+            .is_some_and(|x| x.iter().any(|x| x.contains(&query.to_lowercase())))
+        || card
+            .get_keywords()
+            .is_some_and(|x| x.iter().any(|x| x.name.contains(&query.to_lowercase())))
 }
 
+#[derive(Debug)]
 pub enum QueryRestriction {
     Fuzzy(String),
-    Comparison(Box<dyn Fn(&Card) -> usize>, Comparison),
-    Contains(Box<dyn Fn(&Card) -> &str>, String),
-    Has(Box<dyn Fn(&Card) -> &[String]>, String),
-    HasKw(Box<dyn Fn(&Card) -> &[Keyword]>, String),
-    Not(Vec<QueryRestriction>),
+    Devours(Query),
+    Comparison(NumberProperties, Comparison),
+    Contains(StringProperties, String),
+    Has(ArrayProperties, String),
+    HasKw(String),
+    Not(Query),
 }

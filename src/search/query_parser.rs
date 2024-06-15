@@ -1,6 +1,6 @@
-use crate::cards::Card;
+use crate::cards::{ArrayProperties, NumberProperties, StringProperties};
 
-use super::{Comparison, Errors, QueryRestriction};
+use super::{Comparison, Errors, Query, QueryRestriction};
 
 #[derive(Debug)]
 enum Token {
@@ -22,18 +22,20 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut word = String::new();
     let mut mode = TokenMode::Word;
     let mut paren_count = 0;
-    let mut real = false;
+    let mut real = true;
     for ch in q.chars().chain(vec!['\n']) {
         match mode {
             TokenMode::Word => match ch {
                 '-' => {
-                    real = true;
+                    real = false;
                 }
                 ' ' | '\n' => {
-                    if real {
-                        tokens.push(Token::Word(word));
-                    } else {
-                        tokens.push(Token::Not(vec![Token::Word(word)]));
+                    if !word.is_empty() {
+                        if real {
+                            tokens.push(Token::Word(word));
+                        } else {
+                            tokens.push(Token::Not(vec![Token::Word(word)]));
+                        }
                     }
                     real = true;
                     word = String::new();
@@ -63,7 +65,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 '"' if word.is_empty() => {
                     mode = TokenMode::QParam(param.to_string());
                 }
-                '{' if word.is_empty() => {
+                '(' if word.is_empty() => {
                     mode = TokenMode::SParam(param.to_string());
                 }
                 ch => word.push(ch),
@@ -85,6 +87,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::SParam(ref param) => match ch {
                 ')' if paren_count == 0 => {
                     let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
+                    dbg!(&tok);
                     if real {
                         tokens.push(tok);
                     } else {
@@ -109,78 +112,71 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     Ok(tokens)
 }
 
-fn parse_tokens(q: &[Token]) -> Result<Vec<QueryRestriction>, Errors> {
+fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
-    let mut string = String::new();
+    let mut name = String::new();
     for word in q {
         match word {
             Token::Word(x) => {
-                string.push_str(x);
-                string.push(' ');
+                name.push_str(x);
+                name.push(' ');
             }
             Token::Param(param, value) => match param.as_str() {
                 "cost" | "c" => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(Box::new(Card::get_cost), cmp));
+                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Cost, cmp));
                 }
                 "health" | "h" | "hp" => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(
-                        Box::new(Card::get_health),
-                        cmp,
-                    ));
+                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Health, cmp));
                 }
                 "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(Box::new(Card::get_power), cmp));
+                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Power, cmp));
                 }
                 "defense" | "def" | "d" => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(
-                        Box::new(Card::get_defense),
-                        cmp,
-                    ));
+                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Defense, cmp));
                 }
                 "name" | "n" => restrictions.push(QueryRestriction::Contains(
-                    Box::new(Card::get_name),
+                    StringProperties::Name,
                     value.clone(),
                 )),
                 "type" | "t" => restrictions.push(QueryRestriction::Contains(
-                    Box::new(Card::get_type),
+                    StringProperties::Type,
                     value.clone(),
                 )),
-                "kin" | "k" => restrictions.push(QueryRestriction::Has(
-                    Box::new(Card::get_kins),
-                    value.clone(),
-                )),
+                "kin" | "k" => {
+                    restrictions.push(QueryRestriction::Has(ArrayProperties::Kins, value.clone()));
+                }
                 "function" | "fun" | "fn" | "f" => restrictions.push(QueryRestriction::Has(
-                    Box::new(Card::get_functions),
+                    ArrayProperties::Functions,
                     value.clone(),
                 )),
-                "keyword" | "kw" => restrictions.push(QueryRestriction::HasKw(
-                    Box::new(Card::get_keywords),
-                    value.clone(),
-                )),
+                "keyword" | "kw" => restrictions.push(QueryRestriction::HasKw(value.clone())),
                 _ => return Err(Errors::UnknownParam),
             },
-            Token::SuperParam(param, value) => {
-                if param == "devour" {
-                    todo!();
+            Token::SuperParam(param, value) => match param.as_str() {
+                "devours" | "dev" | "de" | "devs" => {
+                    restrictions.push(QueryRestriction::Devours(parse_tokens(value)?));
                 }
-            }
+                _ => return Err(Errors::UnknownParam),
+            },
             Token::Not(tokens) => {
                 restrictions.push(QueryRestriction::Not(parse_tokens(tokens)?));
             }
         }
     }
-    let string = string.trim().to_string();
-    restrictions.push(QueryRestriction::Fuzzy(string));
-    Ok(restrictions)
+    let name = name.trim().to_string();
+    if !name.is_empty() {
+        restrictions.push(QueryRestriction::Fuzzy(name.clone()));
+    }
+    Ok(Query { name, restrictions })
 }
 
 /// # Errors
 /// Whenever a query cannot be parsed
-pub fn query_parser(q: &str) -> Result<Vec<QueryRestriction>, Errors> {
+pub fn query_parser(q: &str) -> Result<Query, Errors> {
     let q = tokenize_query(q)?;
     parse_tokens(&q)
 }
