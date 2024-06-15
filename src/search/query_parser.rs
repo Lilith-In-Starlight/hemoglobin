@@ -154,13 +154,13 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                     value.clone(),
                 )),
                 "keyword" | "kw" => restrictions.push(QueryRestriction::HasKw(value.clone())),
-                _ => return Err(Errors::UnknownParam),
+                par => return Err(Errors::UnknownStringParam(par.to_owned())),
             },
             Token::SuperParam(param, value) => match param.as_str() {
                 "devours" | "dev" | "de" | "devs" => {
                     restrictions.push(QueryRestriction::Devours(parse_tokens(value)?));
                 }
-                _ => return Err(Errors::UnknownParam),
+                par => return Err(Errors::UnknownSubQueryParam(par.to_owned())),
             },
             Token::Not(tokens) => {
                 restrictions.push(QueryRestriction::Not(parse_tokens(tokens)?));

@@ -47,7 +47,8 @@ impl Comparison {
 #[derive(Debug)]
 pub enum Errors {
     InvalidComparisonString,
-    UnknownParam,
+    UnknownSubQueryParam(String),
+    UnknownStringParam(String),
 }
 
 #[must_use]
