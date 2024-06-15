@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 
 use cards::{KeywordData, ReadProperties};
 use rust_fuzzy_search::fuzzy_compare;
-use search::{Query, QueryRestriction};
+use search::{Query, QueryRestriction, Sort};
 
 pub mod cards;
 pub mod search;
@@ -70,15 +70,24 @@ where
         .filter(|card| apply_restriction(card, query))
         .collect();
 
-    results.sort_by(|a, b| {
-        if query.name.is_empty() {
-            Ord::cmp(&a.get_name(), &b.get_name())
-        } else {
+    match &query.sort {
+        Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
             weighted_compare(b, &query.name)
                 .partial_cmp(&weighted_compare(a, &query.name))
                 .unwrap_or(std::cmp::Ordering::Equal)
-        }
-    });
+        }),
+        Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
+        Sort::Alphabet(property, search::Ordering::Ascending) => results
+            .sort_by(|a, b| Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))),
+        Sort::Numeric(property, search::Ordering::Ascending) => results
+            .sort_by(|a, b| Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))),
+        Sort::Alphabet(property, search::Ordering::Descending) => results.sort_by(|a, b| {
+            Ord::cmp(&a.get_str_property(property), &b.get_str_property(property)).reverse()
+        }),
+        Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
+            Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
+        }),
+    }
 
     results
 }
@@ -151,7 +160,7 @@ mod test {
                 ..Default::default()
             },
         ];
-        let parsed = query_parser::query_parser("c>2");
+        let parsed = query_parser::query_parser("c>=0 so:c");
         println!("{parsed:#?}");
         let cards = parsed.map(|res| apply_restrictions(&res, cards.iter()));
         println!("{cards:#?}");

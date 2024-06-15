@@ -7,6 +7,20 @@ use crate::cards::{ArrayProperties, NumberProperties, ReadProperties, StringProp
 pub struct Query {
     pub name: String,
     pub restrictions: Vec<QueryRestriction>,
+    pub sort: Sort,
+}
+
+#[derive(Debug)]
+pub enum Ordering {
+    Ascending,
+    Descending,
+}
+
+#[derive(Debug)]
+pub enum Sort {
+    Fuzzy,
+    Alphabet(StringProperties, Ordering),
+    Numeric(NumberProperties, Ordering),
 }
 
 #[derive(Deserialize)]
@@ -49,6 +63,7 @@ pub enum Errors {
     InvalidComparisonString,
     UnknownSubQueryParam(String),
     UnknownStringParam(String),
+    InvalidOrdering(String),
 }
 
 #[must_use]

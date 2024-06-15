@@ -1,6 +1,6 @@
 use crate::cards::{ArrayProperties, NumberProperties, StringProperties};
 
-use super::{Comparison, Errors, Query, QueryRestriction};
+use super::{Comparison, Errors, Ordering, Query, QueryRestriction, Sort};
 
 #[derive(Debug)]
 enum Token {
@@ -115,6 +115,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
 fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
     let mut name = String::new();
+    let mut sort = Sort::Fuzzy;
     for word in q {
         match word {
             Token::Word(x) => {
@@ -122,6 +123,27 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                 name.push(' ');
             }
             Token::Param(param, value) => match param.as_str() {
+                param @ ("sort" | "so" | "sortd" | "sod") => {
+                    let order = if matches!(param, "sort" | "so") {
+                        Ordering::Ascending
+                    } else {
+                        Ordering::Descending
+                    };
+                    match value.as_str() {
+                        "cost" | "c" => sort = Sort::Numeric(NumberProperties::Cost, order),
+                        "health" | "h" | "hp" => {
+                            sort = Sort::Numeric(NumberProperties::Health, order);
+                        }
+                        "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
+                            sort = Sort::Numeric(NumberProperties::Power, order);
+                        }
+                        "defense" | "def" | "d" => {
+                            sort = Sort::Numeric(NumberProperties::Defense, order);
+                        }
+                        "name" | "n" => sort = Sort::Alphabet(StringProperties::Name, order),
+                        val => return Err(Errors::InvalidOrdering(val.to_owned())),
+                    }
+                }
                 "cost" | "c" => {
                     let cmp = text_comparison_parser(value)?;
                     restrictions.push(QueryRestriction::Comparison(NumberProperties::Cost, cmp));
@@ -171,7 +193,11 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     if !name.is_empty() {
         restrictions.push(QueryRestriction::Fuzzy(name.clone()));
     }
-    Ok(Query { name, restrictions })
+    Ok(Query {
+        name,
+        restrictions,
+        sort,
+    })
 }
 
 /// # Errors
