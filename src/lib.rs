@@ -1,6 +1,9 @@
 #![warn(clippy::pedantic)]
 
-use std::cmp::Ordering;
+use std::{
+    cmp::{max, min, Ordering},
+    ops::Not,
+};
 
 use cards::{KeywordData, ReadProperties};
 use rust_fuzzy_search::fuzzy_compare;
@@ -9,52 +12,153 @@ use search::{Query, QueryRestriction, Sort};
 pub mod cards;
 pub mod search;
 
-fn apply_restriction(card: &impl ReadProperties, query: &Query) -> bool {
-    let mut filtered = true;
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QueryMatch {
+    NotHave,
+    NotMatch,
+    Match,
+}
+
+impl QueryMatch {
+    fn or(self, b: Self) -> Self {
+        max(self, b)
+    }
+    fn xor(self, b: Self) -> Self {
+        match (self, b) {
+            (Self::Match, Self::Match) => Self::NotMatch,
+            (Self::NotHave, Self::NotHave) => Self::NotHave,
+            (Self::Match, Self::NotMatch | Self::NotHave)
+            | (Self::NotMatch | Self::NotHave, Self::Match) => Self::Match,
+            (Self::NotMatch | Self::NotHave, Self::NotMatch) | (Self::NotMatch, Self::NotHave) => {
+                Self::NotMatch
+            }
+        }
+    }
+    fn and(self, b: Self) -> Self {
+        min(self, b)
+    }
+}
+
+impl Not for QueryMatch {
+    type Output = QueryMatch;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Self::Match => Self::NotMatch,
+            Self::NotMatch => Self::Match,
+            Self::NotHave => Self::NotHave,
+        }
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
+    let mut filtered = QueryMatch::Match;
     for res in &query.restrictions {
         match res {
+            QueryRestriction::Xor(group1, group2) => {
+                let res1 = apply_restriction(card, group1);
+                let res2 = apply_restriction(card, group2);
+                filtered = filtered.and(res1.xor(res2));
+            }
+            QueryRestriction::Or(group1, group2) => {
+                filtered = filtered
+                    .and(apply_restriction(card, group1).or(apply_restriction(card, group2)));
+            }
             QueryRestriction::Group(group) => {
-                filtered = filtered && apply_restriction(card, group);
+                filtered = filtered.and(apply_restriction(card, group));
             }
             QueryRestriction::Fuzzy(x) => {
-                filtered = filtered && search::fuzzy(card, x);
+                filtered = filtered.and(if search::fuzzy(card, x) {
+                    QueryMatch::Match
+                } else {
+                    QueryMatch::NotMatch
+                });
             }
             QueryRestriction::Comparison(field, comparison) => {
-                filtered =
-                    filtered && comparison.maybe_compare(card.get_num_property(field), false);
+                filtered = filtered.and(comparison.maybe_compare(card.get_num_property(field)));
             }
             QueryRestriction::Contains(field, contains) => {
-                filtered = filtered
-                    && card.get_str_property(field).is_some_and(|x| {
-                        x.to_lowercase().contains(contains.to_lowercase().as_str())
-                    });
+                let matches = match card.get_str_property(field) {
+                    Some(property) => {
+                        if property.to_lowercase().contains(&contains.to_lowercase()) {
+                            QueryMatch::Match
+                        } else {
+                            QueryMatch::NotMatch
+                        }
+                    }
+                    None => QueryMatch::NotHave,
+                };
+                filtered = filtered.and(matches);
             }
             QueryRestriction::Has(field, thing) => {
-                let x = card.get_vec_property(field);
-                filtered = filtered && x.is_some_and(|x| x.iter().any(|x| x.contains(thing)));
+                let matches = match card.get_vec_property(field) {
+                    Some(property) => {
+                        if property
+                            .iter()
+                            .any(|x| x.to_lowercase().contains(&thing.to_lowercase()))
+                        {
+                            QueryMatch::Match
+                        } else {
+                            QueryMatch::NotMatch
+                        }
+                    }
+                    None => QueryMatch::NotHave,
+                };
+                filtered = filtered.and(matches);
             }
             QueryRestriction::HasKw(thing) => {
-                let x = card.get_keywords();
-                filtered = filtered && x.is_some_and(|x| x.iter().any(|x| x.name.contains(thing)));
+                let matches = match card.get_keywords() {
+                    Some(property) => {
+                        if property
+                            .iter()
+                            .any(|x| x.name.to_lowercase().contains(&thing.to_lowercase()))
+                        {
+                            QueryMatch::Match
+                        } else {
+                            QueryMatch::NotMatch
+                        }
+                    }
+                    None => QueryMatch::NotHave,
+                };
+                filtered = filtered.and(matches);
             }
             QueryRestriction::Not(queryres) => {
-                filtered = filtered && !apply_restriction(card, queryres);
+                filtered = filtered.and(!apply_restriction(card, queryres));
+            }
+            QueryRestriction::LenientNot(queryres) => {
+                filtered =
+                    filtered.and(if apply_restriction(card, queryres) == QueryMatch::Match {
+                        QueryMatch::NotMatch
+                    } else {
+                        QueryMatch::Match
+                    });
             }
             QueryRestriction::Devours(query) => {
-                filtered = filtered
-                    && card.get_keywords().is_some_and(|x| {
-                        x.iter().any(|x| {
-                            if x.name == "devours" {
-                                if let Some(KeywordData::CardID(ref devoured_id)) = x.data {
-                                    apply_restriction(&devoured_id, query)
+                let matches = {
+                    match card.get_keywords() {
+                        Some(keywords) => {
+                            if keywords.iter().any(|keyword| {
+                                if keyword.name == "devours" {
+                                    if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data
+                                    {
+                                        apply_restriction(&devoured_id, query) == QueryMatch::Match
+                                    } else {
+                                        false
+                                    }
                                 } else {
                                     false
                                 }
+                            }) {
+                                QueryMatch::Match
                             } else {
-                                false
+                                QueryMatch::NotMatch
                             }
-                        })
-                    });
+                        }
+                        None => QueryMatch::NotHave,
+                    }
+                };
+                filtered = filtered.and(matches);
             }
         }
     }
@@ -70,7 +174,7 @@ where
     &'a C: ReadProperties,
 {
     let mut results: Vec<&C> = cards
-        .filter(|card| apply_restriction(card, query))
+        .filter(|card| apply_restriction(card, query) == QueryMatch::Match)
         .collect();
 
     match &query.sort {
@@ -133,61 +237,16 @@ pub fn weighted_compare(a: &impl ReadProperties, b: &str) -> f32 {
 
 #[cfg(test)]
 mod test {
+    use std::fs;
+
     use crate::{apply_restrictions, cards::Card, search::query_parser};
 
     #[test]
     fn test_search() {
-        let cards = vec![
-            Card {
-                id: "1".to_string(),
-                name: "bap".to_string(),
-                img: vec![],
-                description: "thoinasdf".to_string(),
-                cost: 5,
-                health: 1,
-                defense: 2,
-                power: 4,
-                r#type: "awa".to_string(),
-                ..Default::default()
-            },
-            Card {
-                id: "2".to_string(),
-                name: "bap".to_string(),
-                img: vec![],
-                description: "was".to_string(),
-                cost: 5,
-                health: 1,
-                defense: 2,
-                power: 4,
-                r#type: "awa".to_string(),
-                ..Default::default()
-            },
-            Card {
-                id: "4".to_string(),
-                name: "bap".to_string(),
-                img: vec![],
-                description: "thoinasdf".to_string(),
-                cost: 3,
-                health: 1,
-                defense: 2,
-                power: 4,
-                r#type: "awa".to_string(),
-                ..Default::default()
-            },
-            Card {
-                id: "4".to_string(),
-                name: "bop".to_string(),
-                img: vec![],
-                description: "thoinasdf".to_string(),
-                cost: 3,
-                health: 1,
-                defense: 2,
-                power: 4,
-                r#type: "awa".to_string(),
-                ..Default::default()
-            },
-        ];
-        let parsed = query_parser::query_parser("-(n:bap c=5)");
+        let data =
+            fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
+        let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
+        let parsed = query_parser::query_parser("c>=2 n:queen");
         println!("{parsed:#?}");
         let cards = parsed.map(|res| apply_restrictions(&res, cards.iter()));
         println!("{cards:#?}");

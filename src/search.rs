@@ -1,7 +1,10 @@
 pub mod query_parser;
 use serde::Deserialize;
 
-use crate::cards::{ArrayProperties, NumberProperties, ReadProperties, StringProperties};
+use crate::{
+    cards::{ArrayProperties, NumberProperties, ReadProperties, StringProperties},
+    QueryMatch,
+};
 
 #[derive(Debug)]
 pub struct Query {
@@ -50,20 +53,28 @@ impl Comparison {
         }
     }
 
-    pub fn maybe_compare<T: PartialOrd<usize>>(&self, a: Option<T>, default: bool) -> bool {
+    pub fn maybe_compare<T: PartialOrd<usize>>(&self, a: Option<T>) -> QueryMatch {
         match a {
-            Some(a) => self.compare(&a),
-            None => default,
+            Some(a) => {
+                if self.compare(&a) {
+                    QueryMatch::Match
+                } else {
+                    QueryMatch::NotMatch
+                }
+            }
+            None => QueryMatch::NotHave,
         }
     }
 }
 
 #[derive(Debug)]
 pub enum Errors {
+    InvalidOr,
     InvalidComparisonString,
     UnknownSubQueryParam(String),
     UnknownStringParam(String),
     InvalidOrdering(String),
+    InvalidPolarity,
 }
 
 #[must_use]
@@ -93,5 +104,8 @@ pub enum QueryRestriction {
     Has(ArrayProperties, String),
     HasKw(String),
     Not(Query),
+    LenientNot(Query),
     Group(Query),
+    Or(Query, Query),
+    Xor(Query, Query),
 }

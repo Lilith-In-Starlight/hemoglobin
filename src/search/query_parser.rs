@@ -1,4 +1,7 @@
-use crate::cards::{ArrayProperties, NumberProperties, StringProperties};
+use crate::{
+    cards::{ArrayProperties, NumberProperties, StringProperties},
+    QueryMatch,
+};
 
 use super::{Comparison, Errors, Ordering, Query, QueryRestriction, Sort};
 
@@ -8,7 +11,20 @@ enum Token {
     Param(String, String),
     SuperParam(String, Vec<Token>),
     Not(Vec<Token>),
+    LenientNot(Vec<Token>),
     Group(Vec<Token>),
+    Or(Vec<Token>, Option<Vec<Token>>),
+    Xor(Vec<Token>, Option<Vec<Token>>),
+}
+
+impl Token {
+    fn polar_wrap(self, polarity: QueryMatch) -> Token {
+        match polarity {
+            QueryMatch::Match => self,
+            QueryMatch::NotMatch => Token::Not(vec![self]),
+            QueryMatch::NotHave => Token::LenientNot(vec![self]),
+        }
+    }
 }
 
 enum TokenMode {
@@ -19,31 +35,68 @@ enum TokenMode {
     Group,
 }
 
+#[derive(Default)]
+struct TokenStack {
+    tokens: Vec<Token>,
+}
+
+impl TokenStack {
+    fn push(&mut self, token: Token) {
+        match (token, self.pop()) {
+            (a, None) => self.tokens.push(a),
+            (a, Some(Token::Or(b, None))) => {
+                self.tokens.push(Token::Or(b, Some(vec![a])));
+            }
+            (a, Some(Token::Xor(b, None))) => {
+                self.tokens.push(Token::Xor(b, Some(vec![a])));
+            }
+            (a, Some(b)) => {
+                self.tokens.push(b);
+                self.tokens.push(a);
+            }
+        }
+    }
+
+    fn pop(&mut self) -> Option<Token> {
+        self.tokens.pop()
+    }
+}
+
 #[allow(clippy::too_many_lines)]
 fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
-    let mut tokens = vec![];
+    let mut tokens = TokenStack::default();
     let mut word = String::new();
     let mut mode = TokenMode::Word;
     let mut paren_count = 0;
-    let mut real = true;
+    let mut polarity = QueryMatch::Match;
     for ch in q.chars().chain(vec!['\n']) {
         match mode {
             TokenMode::Word => match ch {
-                '-' => {
-                    real = false;
-                }
+                '-' => match polarity {
+                    QueryMatch::Match => polarity = QueryMatch::NotMatch,
+                    QueryMatch::NotMatch => polarity = QueryMatch::NotHave,
+                    QueryMatch::NotHave => return Err(Errors::InvalidPolarity),
+                },
                 '(' if word.is_empty() => {
                     mode = TokenMode::Group;
                 }
                 ' ' | '\n' => {
                     if !word.is_empty() {
-                        if real {
-                            tokens.push(Token::Word(word));
-                        } else {
-                            tokens.push(Token::Not(vec![Token::Word(word)]));
+                        match word.as_str() {
+                            "OR" => {
+                                let top = tokens.pop().ok_or(Errors::InvalidOr)?;
+                                tokens.push(Token::Or(vec![top], None));
+                            }
+                            "XOR" => {
+                                let top = tokens.pop().ok_or(Errors::InvalidOr)?;
+                                tokens.push(Token::Xor(vec![top], None));
+                            }
+                            _ => {
+                                tokens.push(Token::Word(word).polar_wrap(polarity));
+                            }
                         }
                     }
-                    real = true;
+                    polarity = QueryMatch::Match;
                     word = String::new();
                 }
                 ':' => {
@@ -59,12 +112,8 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::Param(ref param) => match ch {
                 ' ' | '\n' => {
                     let tok = Token::Param(param.to_string(), word);
-                    if real {
-                        tokens.push(tok);
-                    } else {
-                        tokens.push(Token::Not(vec![tok]));
-                        real = true;
-                    }
+                    tokens.push(tok.polar_wrap(polarity));
+                    polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -79,12 +128,8 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::QParam(ref param) => match ch {
                 '"' => {
                     let tok = Token::Param(param.to_string(), word);
-                    if real {
-                        tokens.push(tok);
-                    } else {
-                        tokens.push(Token::Not(vec![tok]));
-                        real = true;
-                    }
+                    tokens.push(tok.polar_wrap(polarity));
+                    polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -93,13 +138,8 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::SParam(ref param) => match ch {
                 ')' if paren_count == 0 => {
                     let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
-                    dbg!(&tok);
-                    if real {
-                        tokens.push(tok);
-                    } else {
-                        tokens.push(Token::Not(vec![tok]));
-                        real = true;
-                    }
+                    tokens.push(tok.polar_wrap(polarity));
+                    polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -116,13 +156,8 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::Group => match ch {
                 ')' if paren_count == 0 => {
                     let tok = Token::Group(tokenize_query(&word)?);
-                    dbg!(&tok);
-                    if real {
-                        tokens.push(tok);
-                    } else {
-                        tokens.push(Token::Not(vec![tok]));
-                        real = true;
-                    }
+                    tokens.push(tok.polar_wrap(polarity));
+                    polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -138,15 +173,30 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             },
         }
     }
-    Ok(tokens)
+    Ok(tokens.tokens)
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
     let mut name = String::new();
     let mut sort = Sort::Fuzzy;
     for word in q {
         match word {
+            Token::Or(group1, group2) => match group2 {
+                None => return Err(Errors::InvalidOr),
+                Some(group2) => restrictions.push(QueryRestriction::Or(
+                    parse_tokens(group1)?,
+                    parse_tokens(group2)?,
+                )),
+            },
+            Token::Xor(group1, group2) => match group2 {
+                None => return Err(Errors::InvalidOr),
+                Some(group2) => restrictions.push(QueryRestriction::Xor(
+                    parse_tokens(group1)?,
+                    parse_tokens(group2)?,
+                )),
+            },
             Token::Group(group) => {
                 restrictions.push(QueryRestriction::Group(parse_tokens(group)?));
             }
@@ -218,6 +268,9 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
             },
             Token::Not(tokens) => {
                 restrictions.push(QueryRestriction::Not(parse_tokens(tokens)?));
+            }
+            Token::LenientNot(tokens) => {
+                restrictions.push(QueryRestriction::LenientNot(parse_tokens(tokens)?));
             }
         }
     }
