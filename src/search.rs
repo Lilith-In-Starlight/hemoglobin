@@ -93,4 +93,5 @@ pub enum QueryRestriction {
     Has(ArrayProperties, String),
     HasKw(String),
     Not(Query),
+    Group(Query),
 }

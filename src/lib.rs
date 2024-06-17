@@ -13,6 +13,9 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> bool {
     let mut filtered = true;
     for res in &query.restrictions {
         match res {
+            QueryRestriction::Group(group) => {
+                filtered = filtered && apply_restriction(card, group);
+            }
             QueryRestriction::Fuzzy(x) => {
                 filtered = filtered && search::fuzzy(card, x);
             }
@@ -137,18 +140,6 @@ mod test {
         let cards = vec![
             Card {
                 id: "1".to_string(),
-                name: "thing".to_string(),
-                img: vec![],
-                description: "thoinasdf".to_string(),
-                cost: 1,
-                health: 1,
-                defense: 2,
-                power: 4,
-                r#type: "awa".to_string(),
-                ..Default::default()
-            },
-            Card {
-                id: "2".to_string(),
                 name: "bap".to_string(),
                 img: vec![],
                 description: "thoinasdf".to_string(),
@@ -159,8 +150,44 @@ mod test {
                 r#type: "awa".to_string(),
                 ..Default::default()
             },
+            Card {
+                id: "2".to_string(),
+                name: "bap".to_string(),
+                img: vec![],
+                description: "was".to_string(),
+                cost: 5,
+                health: 1,
+                defense: 2,
+                power: 4,
+                r#type: "awa".to_string(),
+                ..Default::default()
+            },
+            Card {
+                id: "4".to_string(),
+                name: "bap".to_string(),
+                img: vec![],
+                description: "thoinasdf".to_string(),
+                cost: 3,
+                health: 1,
+                defense: 2,
+                power: 4,
+                r#type: "awa".to_string(),
+                ..Default::default()
+            },
+            Card {
+                id: "4".to_string(),
+                name: "bop".to_string(),
+                img: vec![],
+                description: "thoinasdf".to_string(),
+                cost: 3,
+                health: 1,
+                defense: 2,
+                power: 4,
+                r#type: "awa".to_string(),
+                ..Default::default()
+            },
         ];
-        let parsed = query_parser::query_parser("c>=0 so:c");
+        let parsed = query_parser::query_parser("-(n:bap c=5)");
         println!("{parsed:#?}");
         let cards = parsed.map(|res| apply_restrictions(&res, cards.iter()));
         println!("{cards:#?}");

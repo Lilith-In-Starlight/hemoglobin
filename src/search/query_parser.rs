@@ -8,6 +8,7 @@ enum Token {
     Param(String, String),
     SuperParam(String, Vec<Token>),
     Not(Vec<Token>),
+    Group(Vec<Token>),
 }
 
 enum TokenMode {
@@ -15,8 +16,10 @@ enum TokenMode {
     Param(String),
     QParam(String),
     SParam(String),
+    Group,
 }
 
+#[allow(clippy::too_many_lines)]
 fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut tokens = vec![];
     let mut word = String::new();
@@ -28,6 +31,9 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
             TokenMode::Word => match ch {
                 '-' => {
                     real = false;
+                }
+                '(' if word.is_empty() => {
+                    mode = TokenMode::Group;
                 }
                 ' ' | '\n' => {
                     if !word.is_empty() {
@@ -107,6 +113,29 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 }
                 ch => word.push(ch),
             },
+            TokenMode::Group => match ch {
+                ')' if paren_count == 0 => {
+                    let tok = Token::Group(tokenize_query(&word)?);
+                    dbg!(&tok);
+                    if real {
+                        tokens.push(tok);
+                    } else {
+                        tokens.push(Token::Not(vec![tok]));
+                        real = true;
+                    }
+                    word = String::new();
+                    mode = TokenMode::Word;
+                }
+                '(' => {
+                    paren_count += 1;
+                    word.push(ch);
+                }
+                ')' if paren_count > 0 => {
+                    paren_count -= 1;
+                    word.push(ch);
+                }
+                ch => word.push(ch),
+            },
         }
     }
     Ok(tokens)
@@ -118,6 +147,9 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut sort = Sort::Fuzzy;
     for word in q {
         match word {
+            Token::Group(group) => {
+                restrictions.push(QueryRestriction::Group(parse_tokens(group)?));
+            }
             Token::Word(x) => {
                 name.push_str(x);
                 name.push(' ');
