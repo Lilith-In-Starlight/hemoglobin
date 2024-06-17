@@ -237,18 +237,34 @@ pub fn weighted_compare(a: &impl ReadProperties, b: &str) -> f32 {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
+    use std::{fmt::Display, fs};
 
     use crate::{apply_restrictions, cards::Card, search::query_parser};
+
+    struct PrintableCards<'a>(Vec<&'a Card>);
+
+    impl<'a> Display for PrintableCards<'a> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for card in &self.0 {
+                writeln!(f, "{card}")?;
+                writeln!(f)?;
+            }
+            Ok(())
+        }
+    }
 
     #[test]
     fn test_search() {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("c>=2 n:queen");
+        let parsed = query_parser::query_parser("p<=3");
         println!("{parsed:#?}");
-        let cards = parsed.map(|res| apply_restrictions(&res, cards.iter()));
-        println!("{cards:#?}");
+        let cards = PrintableCards(
+            parsed
+                .map(|res| apply_restrictions(&res, cards.iter()))
+                .unwrap(),
+        );
+        println!("{cards}");
     }
 }

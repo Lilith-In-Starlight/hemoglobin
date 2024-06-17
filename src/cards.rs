@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +30,23 @@ pub struct Card {
     pub functions: Vec<String>,
 }
 
+impl Display for Card {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut name = self.name.as_str();
+        if name.len() > 20 {
+            name = &name[0..18];
+        }
+        let mut nameline = name.to_owned();
+        for _ in nameline.len()..24 {
+            nameline.push(' ');
+        }
+        nameline.push_str(&self.cost.to_string());
+        writeln!(f, "{nameline}")?;
+        writeln!(f)?;
+        writeln!(f, "{}", self.description)
+    }
+}
+
 pub trait ReadProperties {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize>;
     fn get_str_property(&self, property: &StringProperties) -> Option<&str>;
@@ -43,12 +60,30 @@ pub trait ReadProperties {
 
 impl ReadProperties for Card {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
-        Some(match property {
-            NumberProperties::Cost => self.cost,
-            NumberProperties::Health => self.health,
-            NumberProperties::Defense => self.defense,
-            NumberProperties::Power => self.power,
-        })
+        match property {
+            NumberProperties::Cost => Some(self.cost),
+            NumberProperties::Health => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.health)
+                }
+            }
+            NumberProperties::Defense => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.defense)
+                }
+            }
+            NumberProperties::Power => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.power)
+                }
+            }
+        }
     }
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
@@ -89,12 +124,30 @@ impl ReadProperties for Card {
 
 impl ReadProperties for &Card {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
-        Some(match property {
-            NumberProperties::Cost => self.cost,
-            NumberProperties::Health => self.health,
-            NumberProperties::Defense => self.defense,
-            NumberProperties::Power => self.power,
-        })
+        match property {
+            NumberProperties::Cost => Some(self.cost),
+            NumberProperties::Health => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.health)
+                }
+            }
+            NumberProperties::Defense => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.defense)
+                }
+            }
+            NumberProperties::Power => {
+                if self.r#type.contains("command") {
+                    None
+                } else {
+                    Some(self.power)
+                }
+            }
+        }
     }
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
@@ -137,9 +190,27 @@ impl ReadProperties for CardID {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => self.cost,
-            NumberProperties::Health => self.health,
-            NumberProperties::Defense => self.defense,
-            NumberProperties::Power => self.power,
+            NumberProperties::Health => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.health
+                }
+            }
+            NumberProperties::Defense => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.defense
+                }
+            }
+            NumberProperties::Power => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.power
+                }
+            }
         }
     }
 
@@ -183,9 +254,27 @@ impl ReadProperties for &CardID {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => self.cost,
-            NumberProperties::Health => self.health,
-            NumberProperties::Defense => self.defense,
-            NumberProperties::Power => self.power,
+            NumberProperties::Health => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.health
+                }
+            }
+            NumberProperties::Defense => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.defense
+                }
+            }
+            NumberProperties::Power => {
+                if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
+                    None
+                } else {
+                    self.power
+                }
+            }
         }
     }
 

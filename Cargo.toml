@@ -11,3 +11,6 @@ repository = "https://github.com/Lilith-In-Starlight/hemoglobin"
 [dependencies]
 rust-fuzzy-search = "0.1.1"
 serde = { version = "1.0.203", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0.117"
