@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/Lilith-In-Starlight/hemoglobin"
 
 [dependencies]
+regex = "1.10.5"
 rust-fuzzy-search = "0.1.1"
 serde = { version = "1.0.203", features = ["derive"] }
 

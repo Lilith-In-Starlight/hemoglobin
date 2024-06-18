@@ -55,6 +55,21 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
     let mut filtered = QueryMatch::Match;
     for res in &query.restrictions {
         match res {
+            QueryRestriction::Regex(property, regex) => {
+                let matches = {
+                    match card.get_str_property(property) {
+                        None => QueryMatch::NotHave,
+                        Some(value) => {
+                            if regex.is_match(&value.to_lowercase()) {
+                                QueryMatch::Match
+                            } else {
+                                QueryMatch::NotMatch
+                            }
+                        }
+                    }
+                };
+                filtered = filtered.and(matches);
+            }
             QueryRestriction::Xor(group1, group2) => {
                 let res1 = apply_restriction(card, group1);
                 let res2 = apply_restriction(card, group2);
@@ -238,7 +253,7 @@ mod test {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("p<=3");
+        let parsed = query_parser::query_parser("n:/.* ant/");
         println!("{parsed:#?}");
         let cards = PrintableCards(
             parsed

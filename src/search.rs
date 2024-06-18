@@ -1,4 +1,5 @@
 pub mod query_parser;
+use regex::Regex;
 use serde::Deserialize;
 
 use crate::{
@@ -69,12 +70,15 @@ impl Comparison {
 
 #[derive(Debug)]
 pub enum Errors {
+    NonRegexable(String),
     InvalidOr,
     InvalidComparisonString,
     UnknownSubQueryParam(String),
     UnknownStringParam(String),
     InvalidOrdering(String),
     InvalidPolarity,
+    NotSortable,
+    RegexErr(regex::Error),
 }
 
 #[must_use]
@@ -101,6 +105,7 @@ pub enum QueryRestriction {
     Devours(Query),
     Comparison(NumberProperties, Comparison),
     Contains(StringProperties, String),
+    Regex(StringProperties, Regex),
     Has(ArrayProperties, String),
     HasKw(String),
     Not(Query),

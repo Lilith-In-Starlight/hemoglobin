@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use crate::{
     cards::{ArrayProperties, NumberProperties, StringProperties},
     QueryMatch,
@@ -9,6 +11,7 @@ use super::{Comparison, Errors, Ordering, Query, QueryRestriction, Sort};
 enum Token {
     Word(String),
     Param(String, String),
+    RegexParam(String, Regex),
     SuperParam(String, Vec<Token>),
     Not(Vec<Token>),
     LenientNot(Vec<Token>),
@@ -30,6 +33,7 @@ impl Token {
 enum TokenMode {
     Word,
     Param(String),
+    RegexParam(String),
     QParam(String),
     SParam(String),
     Group,
@@ -120,8 +124,24 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 '"' if word.is_empty() => {
                     mode = TokenMode::QParam(param.to_string());
                 }
+                '/' if word.is_empty() => {
+                    mode = TokenMode::RegexParam(param.to_string());
+                }
                 '(' if word.is_empty() => {
                     mode = TokenMode::SParam(param.to_string());
+                }
+                ch => word.push(ch),
+            },
+            TokenMode::RegexParam(ref param) => match ch {
+                '\n' | '/' => {
+                    let tok = Token::RegexParam(
+                        param.to_string(),
+                        Regex::new(&word.to_lowercase()).map_err(Errors::RegexErr)?,
+                    );
+                    tokens.push(tok.polar_wrap(polarity));
+                    polarity = QueryMatch::Match;
+                    word = String::new();
+                    mode = TokenMode::Word;
                 }
                 ch => word.push(ch),
             },
@@ -176,13 +196,18 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     Ok(tokens.tokens)
 }
 
-#[allow(clippy::too_many_lines)]
 fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
     let mut name = String::new();
     let mut sort = Sort::Fuzzy;
     for word in q {
         match word {
+            Token::RegexParam(field, regex) => match get_property_from_name(field.as_str())? {
+                Properties::StringProperty(property) => {
+                    restrictions.push(QueryRestriction::Regex(property, regex.clone()));
+                }
+                _ => return Err(Errors::NonRegexable(field.clone())),
+            },
             Token::Or(group1, group2) => match group2 {
                 None => return Err(Errors::InvalidOr),
                 Some(group2) => restrictions.push(QueryRestriction::Or(
@@ -204,61 +229,26 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                 name.push_str(x);
                 name.push(' ');
             }
-            Token::Param(param, value) => match param.as_str() {
-                param @ ("sort" | "so" | "sortd" | "sod") => {
-                    let order = if matches!(param, "sort" | "so") {
-                        Ordering::Ascending
-                    } else {
-                        Ordering::Descending
-                    };
-                    match value.as_str() {
-                        "cost" | "c" => sort = Sort::Numeric(NumberProperties::Cost, order),
-                        "health" | "h" | "hp" => {
-                            sort = Sort::Numeric(NumberProperties::Health, order);
-                        }
-                        "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
-                            sort = Sort::Numeric(NumberProperties::Power, order);
-                        }
-                        "defense" | "def" | "d" => {
-                            sort = Sort::Numeric(NumberProperties::Defense, order);
-                        }
-                        "name" | "n" => sort = Sort::Alphabet(StringProperties::Name, order),
-                        val => return Err(Errors::InvalidOrdering(val.to_owned())),
+            Token::Param(param, value) => match get_property_from_name(param)? {
+                Properties::Sort(order) => match get_property_from_name(value)? {
+                    Properties::NumProperty(property) => sort = Sort::Numeric(property, order),
+                    Properties::StringProperty(property) => {
+                        sort = Sort::Alphabet(property, order);
                     }
-                }
-                "cost" | "c" => {
+
+                    _ => return Err(Errors::NotSortable),
+                },
+                Properties::NumProperty(property) => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Cost, cmp));
+                    restrictions.push(QueryRestriction::Comparison(property, cmp));
                 }
-                "health" | "h" | "hp" => {
-                    let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Health, cmp));
+                Properties::StringProperty(property) => {
+                    restrictions.push(QueryRestriction::Contains(property, value.clone()));
                 }
-                "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
-                    let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Power, cmp));
+                Properties::ArrayProperty(property) => {
+                    restrictions.push(QueryRestriction::Has(property, value.clone()));
                 }
-                "defense" | "def" | "d" => {
-                    let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(NumberProperties::Defense, cmp));
-                }
-                "name" | "n" => restrictions.push(QueryRestriction::Contains(
-                    StringProperties::Name,
-                    value.clone(),
-                )),
-                "type" | "t" => restrictions.push(QueryRestriction::Contains(
-                    StringProperties::Type,
-                    value.clone(),
-                )),
-                "kin" | "k" => {
-                    restrictions.push(QueryRestriction::Has(ArrayProperties::Kins, value.clone()));
-                }
-                "function" | "fun" | "fn" | "f" => restrictions.push(QueryRestriction::Has(
-                    ArrayProperties::Functions,
-                    value.clone(),
-                )),
-                "keyword" | "kw" => restrictions.push(QueryRestriction::HasKw(value.clone())),
-                par => return Err(Errors::UnknownStringParam(par.to_owned())),
+                Properties::Keywords => restrictions.push(QueryRestriction::HasKw(value.clone())),
             },
             Token::SuperParam(param, value) => match param.as_str() {
                 "devours" | "dev" | "de" | "devs" => {
@@ -283,6 +273,37 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
         restrictions,
         sort,
     })
+}
+
+/// # Errors
+/// When `str` is not a valid property query name
+pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
+    match str {
+        "name" | "n" => Ok(Properties::StringProperty(StringProperties::Name)),
+        "type" | "t" => Ok(Properties::StringProperty(StringProperties::Type)),
+        "cost" | "c" => Ok(Properties::NumProperty(NumberProperties::Cost)),
+        "health" | "h" | "hp" => Ok(Properties::NumProperty(NumberProperties::Health)),
+        "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
+            Ok(Properties::NumProperty(NumberProperties::Power))
+        }
+        "defense" | "def" | "d" => Ok(Properties::NumProperty(NumberProperties::Defense)),
+        "kin" | "k" => Ok(Properties::ArrayProperty(ArrayProperties::Kins)),
+        "function" | "fun" | "fn" | "f" => {
+            Ok(Properties::ArrayProperty(ArrayProperties::Functions))
+        }
+        "keyword" | "kw" => Ok(Properties::Keywords),
+        "sort" | "so" => Ok(Properties::Sort(Ordering::Ascending)),
+        "sortd" | "sod" => Ok(Properties::Sort(Ordering::Descending)),
+        _ => Err(Errors::UnknownStringParam(str.to_owned())),
+    }
+}
+
+pub enum Properties {
+    NumProperty(NumberProperties),
+    StringProperty(StringProperties),
+    ArrayProperty(ArrayProperties),
+    Sort(Ordering),
+    Keywords,
 }
 
 /// # Errors
