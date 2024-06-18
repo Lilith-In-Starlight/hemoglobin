@@ -51,7 +51,6 @@ impl Not for QueryMatch {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
     let mut filtered = QueryMatch::Match;
     for res in &query.restrictions {
@@ -92,35 +91,15 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Has(field, thing) => {
-                let matches = match card.get_vec_property(field) {
-                    Some(property) => {
-                        if property
-                            .iter()
-                            .any(|x| x.to_lowercase().contains(&thing.to_lowercase()))
-                        {
-                            QueryMatch::Match
-                        } else {
-                            QueryMatch::NotMatch
-                        }
-                    }
-                    None => QueryMatch::NotHave,
-                };
+                let matches = match_in_vec(card.get_vec_property(field), |text| {
+                    text.to_lowercase().contains(&thing.to_lowercase())
+                });
                 filtered = filtered.and(matches);
             }
             QueryRestriction::HasKw(thing) => {
-                let matches = match card.get_keywords() {
-                    Some(property) => {
-                        if property
-                            .iter()
-                            .any(|x| x.name.to_lowercase().contains(&thing.to_lowercase()))
-                        {
-                            QueryMatch::Match
-                        } else {
-                            QueryMatch::NotMatch
-                        }
-                    }
-                    None => QueryMatch::NotHave,
-                };
+                let matches = match_in_vec(card.get_keywords(), |keyword| {
+                    keyword.name.to_lowercase().contains(&thing.to_lowercase())
+                });
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Not(queryres) => {
@@ -135,34 +114,35 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
                     });
             }
             QueryRestriction::Devours(query) => {
-                let matches = {
-                    match card.get_keywords() {
-                        Some(keywords) => {
-                            if keywords.iter().any(|keyword| {
-                                if keyword.name == "devours" {
-                                    if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data
-                                    {
-                                        apply_restriction(&devoured_id, query) == QueryMatch::Match
-                                    } else {
-                                        false
-                                    }
-                                } else {
-                                    false
-                                }
-                            }) {
-                                QueryMatch::Match
-                            } else {
-                                QueryMatch::NotMatch
-                            }
+                let matches = match_in_vec(card.get_keywords(), |keyword| {
+                    if keyword.name == "devours" {
+                        if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data {
+                            apply_restriction(&devoured_id, query) == QueryMatch::Match
+                        } else {
+                            false
                         }
-                        None => QueryMatch::NotHave,
+                    } else {
+                        false
                     }
-                };
+                });
                 filtered = filtered.and(matches);
             }
         }
     }
     filtered
+}
+
+pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMatch {
+    match vec {
+        Some(vec) => {
+            if vec.iter().any(cond) {
+                QueryMatch::Match
+            } else {
+                QueryMatch::NotMatch
+            }
+        }
+        None => QueryMatch::NotHave,
+    }
 }
 
 #[must_use]
