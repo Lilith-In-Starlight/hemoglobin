@@ -8,10 +8,40 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub enum Errors {
+    NonRegexable(String),
+    InvalidOr,
+    InvalidComparisonString,
+    UnknownSubQueryParam(String),
+    UnknownStringParam(String),
+    InvalidOrdering(String),
+    InvalidPolarity,
+    NotSortable,
+    RegexErr(regex::Error),
+}
+
+#[derive(Debug)]
 pub struct Query {
     pub name: String,
+    pub devoured_by: Option<Box<Query>>,
     pub restrictions: Vec<QueryRestriction>,
     pub sort: Sort,
+}
+
+#[derive(Debug)]
+pub enum QueryRestriction {
+    Fuzzy(String),
+    Devours(Query),
+    Comparison(NumberProperties, Comparison),
+    Contains(StringProperties, String),
+    Regex(StringProperties, Regex),
+    Has(ArrayProperties, String),
+    HasKw(String),
+    Not(Query),
+    LenientNot(Query),
+    Group(Query),
+    Or(Query, Query),
+    Xor(Query, Query),
 }
 
 #[derive(Debug)]
@@ -68,19 +98,6 @@ impl Comparison {
     }
 }
 
-#[derive(Debug)]
-pub enum Errors {
-    NonRegexable(String),
-    InvalidOr,
-    InvalidComparisonString,
-    UnknownSubQueryParam(String),
-    UnknownStringParam(String),
-    InvalidOrdering(String),
-    InvalidPolarity,
-    NotSortable,
-    RegexErr(regex::Error),
-}
-
 #[must_use]
 pub fn fuzzy(card: &impl ReadProperties, query: &str) -> bool {
     card.get_description()
@@ -97,20 +114,4 @@ pub fn fuzzy(card: &impl ReadProperties, query: &str) -> bool {
         || card
             .get_keywords()
             .is_some_and(|x| x.iter().any(|x| x.name.contains(&query.to_lowercase())))
-}
-
-#[derive(Debug)]
-pub enum QueryRestriction {
-    Fuzzy(String),
-    Devours(Query),
-    Comparison(NumberProperties, Comparison),
-    Contains(StringProperties, String),
-    Regex(StringProperties, Regex),
-    Has(ArrayProperties, String),
-    HasKw(String),
-    Not(Query),
-    LenientNot(Query),
-    Group(Query),
-    Or(Query, Query),
-    Xor(Query, Query),
 }

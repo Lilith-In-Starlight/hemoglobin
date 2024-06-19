@@ -200,6 +200,7 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
     let mut name = String::new();
     let mut sort = Sort::Fuzzy;
+    let mut devoured_by = None;
     for word in q {
         match word {
             Token::RegexParam(field, regex) => match get_property_from_name(field.as_str())? {
@@ -254,6 +255,9 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                 "devours" | "dev" | "de" | "devs" => {
                     restrictions.push(QueryRestriction::Devours(parse_tokens(value)?));
                 }
+                "devouredby" | "devby" | "deby" | "dby" | "db" => {
+                    devoured_by = Some(Box::new(parse_tokens(value)?));
+                }
                 par => return Err(Errors::UnknownSubQueryParam(par.to_owned())),
             },
             Token::Not(tokens) => {
@@ -270,6 +274,7 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     }
     Ok(Query {
         name,
+        devoured_by,
         restrictions,
         sort,
     })
@@ -279,7 +284,11 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
 /// When `str` is not a valid property query name
 pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
     match str {
+        "id" => Ok(Properties::StringProperty(StringProperties::Id)),
         "name" | "n" => Ok(Properties::StringProperty(StringProperties::Name)),
+        "description" | "desc" | "de" => {
+            Ok(Properties::StringProperty(StringProperties::Description))
+        }
         "type" | "t" => Ok(Properties::StringProperty(StringProperties::Type)),
         "cost" | "c" => Ok(Properties::NumProperty(NumberProperties::Cost)),
         "health" | "h" | "hp" => Ok(Properties::NumProperty(NumberProperties::Health)),

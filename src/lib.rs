@@ -5,7 +5,7 @@ use std::{
     ops::Not,
 };
 
-use cards::{KeywordData, ReadProperties};
+use cards::{Keyword, KeywordData, ReadProperties};
 use rust_fuzzy_search::fuzzy_compare;
 use search::{Query, QueryRestriction, Sort};
 
@@ -161,37 +161,88 @@ pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMat
 }
 
 #[must_use]
-pub fn apply_restrictions<'a, C: ReadProperties + 'a, T: Iterator<Item = &'a C>>(
+pub fn apply_restrictions<'a, C: ReadProperties + Clone + 'a, T: Iterator<Item = &'a C> + Clone>(
     query: &Query,
     cards: T,
 ) -> Vec<&'a C>
 where
     &'a C: ReadProperties,
 {
-    let mut results: Vec<&C> = cards
-        .filter(|card| apply_restriction(card, query) == QueryMatch::Match)
-        .collect();
+    match query.devoured_by {
+        None => {
+            let mut results: Vec<&C> = cards
+                .filter(|card| apply_restriction(card, query) == QueryMatch::Match)
+                .collect();
 
-    match &query.sort {
-        Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
-            weighted_compare(b, &query.name)
-                .partial_cmp(&weighted_compare(a, &query.name))
-                .unwrap_or(std::cmp::Ordering::Equal)
-        }),
-        Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
-        Sort::Alphabet(property, search::Ordering::Ascending) => results
-            .sort_by(|a, b| Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))),
-        Sort::Numeric(property, search::Ordering::Ascending) => results
-            .sort_by(|a, b| Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))),
-        Sort::Alphabet(property, search::Ordering::Descending) => results.sort_by(|a, b| {
-            Ord::cmp(&a.get_str_property(property), &b.get_str_property(property)).reverse()
-        }),
-        Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
-            Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
-        }),
+            match &query.sort {
+                Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
+                    weighted_compare(b, &query.name)
+                        .partial_cmp(&weighted_compare(a, &query.name))
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                }),
+                Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
+                Sort::Alphabet(property, search::Ordering::Ascending) => results.sort_by(|a, b| {
+                    Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))
+                }),
+                Sort::Numeric(property, search::Ordering::Ascending) => results.sort_by(|a, b| {
+                    Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))
+                }),
+                Sort::Alphabet(property, search::Ordering::Descending) => {
+                    results.sort_by(|a, b| {
+                        Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))
+                            .reverse()
+                    });
+                }
+                Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
+                    Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
+                }),
+            }
+
+            results
+        }
+        Some(ref devoured_by) => {
+            let devourers: Vec<&C> = cards
+                .clone()
+                .filter(|card| apply_restriction(card, devoured_by) == QueryMatch::Match)
+                .collect();
+
+            let mut queries: Vec<Query> = vec![];
+
+            for devourer in devourers {
+                if let Some(Keyword {
+                    name: _,
+                    data: Some(KeywordData::CardID(card_id)),
+                }) = devourer
+                    .get_keywords()
+                    .and_then(|x| x.iter().find(|x| x.name == "devours"))
+                {
+                    queries.push(Query {
+                        name: String::new(),
+                        devoured_by: None,
+                        restrictions: card_id.get_as_query(),
+                        sort: Sort::Fuzzy,
+                    });
+                }
+            }
+
+            let query = queries
+                .into_iter()
+                .reduce(|first, second| Query {
+                    name: String::new(),
+                    devoured_by: None,
+                    restrictions: vec![QueryRestriction::Or(first, second)],
+                    sort: Sort::Fuzzy,
+                })
+                .unwrap_or(Query {
+                    name: String::new(),
+                    devoured_by: None,
+                    restrictions: vec![],
+                    sort: Sort::Fuzzy,
+                });
+
+            apply_restrictions(&query, cards)
+        }
     }
-
-    results
 }
 
 #[must_use]
@@ -253,7 +304,7 @@ mod test {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("n:/.* ant/");
+        let parsed = query_parser::query_parser("db:(n:\"infected fly\")");
         println!("{parsed:#?}");
         let cards = PrintableCards(
             parsed

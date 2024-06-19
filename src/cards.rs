@@ -2,6 +2,8 @@ use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
+use crate::search::{Comparison, QueryRestriction};
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct Card {
     pub id: String,
@@ -88,6 +90,7 @@ impl ReadProperties for Card {
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         Some(match property {
+            StringProperties::Id => &self.id,
             StringProperties::Name => &self.name,
             StringProperties::Type => &self.r#type,
             StringProperties::Description => &self.description,
@@ -152,6 +155,7 @@ impl ReadProperties for &Card {
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         Some(match property {
+            StringProperties::Id => &self.id,
             StringProperties::Name => &self.name,
             StringProperties::Type => &self.r#type,
             StringProperties::Description => &self.description,
@@ -216,6 +220,7 @@ impl ReadProperties for CardID {
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         match property {
+            StringProperties::Id => None,
             StringProperties::Name => self.name.as_deref(),
             StringProperties::Type => self.r#type.as_deref(),
             StringProperties::Description => self.description.as_deref(),
@@ -280,6 +285,7 @@ impl ReadProperties for &CardID {
 
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         match property {
+            StringProperties::Id => None,
             StringProperties::Name => self.name.as_deref(),
             StringProperties::Type => self.r#type.as_deref(),
             StringProperties::Description => self.description.as_deref(),
@@ -374,7 +380,64 @@ pub enum ArrayProperties {
 
 #[derive(Debug)]
 pub enum StringProperties {
+    Id,
     Name,
     Type,
     Description,
+}
+
+impl CardID {
+    #[must_use]
+    pub fn get_as_query(&self) -> Vec<QueryRestriction> {
+        let mut restrictions = vec![];
+
+        if let Some(name) = &self.name {
+            restrictions.push(QueryRestriction::Contains(
+                StringProperties::Name,
+                name.clone(),
+            ));
+        }
+
+        if let Some(kins) = &self.kins {
+            for kin in kins {
+                restrictions.push(QueryRestriction::Has(ArrayProperties::Kins, kin.clone()));
+            }
+        }
+
+        if let Some(keywords) = &self.keywords {
+            for keyword in keywords {
+                restrictions.push(QueryRestriction::HasKw(keyword.name.clone()));
+            }
+        }
+
+        if let Some(cost) = &self.cost {
+            restrictions.push(QueryRestriction::Comparison(
+                NumberProperties::Cost,
+                Comparison::Equal(*cost),
+            ));
+        }
+
+        if let Some(health) = &self.health {
+            restrictions.push(QueryRestriction::Comparison(
+                NumberProperties::Health,
+                Comparison::Equal(*health),
+            ));
+        }
+
+        if let Some(power) = &self.power {
+            restrictions.push(QueryRestriction::Comparison(
+                NumberProperties::Power,
+                Comparison::Equal(*power),
+            ));
+        }
+
+        if let Some(defense) = &self.defense {
+            restrictions.push(QueryRestriction::Comparison(
+                NumberProperties::Defense,
+                Comparison::Equal(*defense),
+            ));
+        }
+
+        restrictions
+    }
 }
