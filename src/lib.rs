@@ -175,6 +175,7 @@ where
                 .collect();
 
             match &query.sort {
+                Sort::None => (),
                 Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
                     weighted_compare(b, &query.name)
                         .partial_cmp(&weighted_compare(a, &query.name))
@@ -220,27 +221,38 @@ where
                         name: String::new(),
                         devoured_by: None,
                         restrictions: card_id.get_as_query(),
-                        sort: Sort::Fuzzy,
+                        sort: Sort::None,
                     });
                 }
             }
 
-            let query = queries
+            let mut devourees_query = queries
                 .into_iter()
                 .reduce(|first, second| Query {
                     name: String::new(),
                     devoured_by: None,
                     restrictions: vec![QueryRestriction::Or(first, second)],
-                    sort: Sort::Fuzzy,
+                    sort: Sort::None,
                 })
                 .unwrap_or(Query {
                     name: String::new(),
                     devoured_by: None,
                     restrictions: vec![],
-                    sort: Sort::Fuzzy,
+                    sort: Sort::None,
                 });
 
-            apply_restrictions(&query, cards)
+            devourees_query
+                .restrictions
+                .append(&mut query.restrictions.clone());
+
+            let devourees_query = Query {
+                name: query.name.clone(),
+                devoured_by: None,
+                restrictions: devourees_query.restrictions,
+                sort: query.sort,
+            };
+
+            apply_restrictions(&devourees_query, cards)
         }
     }
 }

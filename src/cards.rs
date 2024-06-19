@@ -364,7 +364,7 @@ pub struct Keyword {
     pub data: Option<KeywordData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum NumberProperties {
     Cost,
     Health,
@@ -372,13 +372,13 @@ pub enum NumberProperties {
     Defense,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ArrayProperties {
     Functions,
     Kins,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StringProperties {
     Id,
     Name,

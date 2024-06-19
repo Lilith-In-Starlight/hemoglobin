@@ -20,7 +20,7 @@ pub enum Errors {
     RegexErr(regex::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Query {
     pub name: String,
     pub devoured_by: Option<Box<Query>>,
@@ -28,7 +28,7 @@ pub struct Query {
     pub sort: Sort,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum QueryRestriction {
     Fuzzy(String),
     Devours(Query),
@@ -44,14 +44,15 @@ pub enum QueryRestriction {
     Xor(Query, Query),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Ordering {
     Ascending,
     Descending,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Sort {
+    None,
     Fuzzy,
     Alphabet(StringProperties, Ordering),
     Numeric(NumberProperties, Ordering),
@@ -62,7 +63,7 @@ pub struct QueryParams {
     pub query: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub enum Comparison {
     GreaterThan(usize),
     GreaterThanOrEqual(usize),
