@@ -101,6 +101,7 @@ impl ReadProperties for Card {
         Some(match property {
             ArrayProperties::Functions => &self.functions,
             ArrayProperties::Kins => &self.kins,
+            ArrayProperties::Artists => &self.artists,
         })
     }
 
@@ -166,6 +167,7 @@ impl ReadProperties for &Card {
         Some(match property {
             ArrayProperties::Functions => &self.functions,
             ArrayProperties::Kins => &self.kins,
+            ArrayProperties::Artists => &self.artists,
         })
     }
 
@@ -231,6 +233,7 @@ impl ReadProperties for CardID {
         match property {
             ArrayProperties::Functions => self.functions.as_deref(),
             ArrayProperties::Kins => self.kins.as_deref(),
+            ArrayProperties::Artists => None,
         }
     }
 
@@ -296,6 +299,7 @@ impl ReadProperties for &CardID {
         match property {
             ArrayProperties::Functions => self.functions.as_deref(),
             ArrayProperties::Kins => self.kins.as_deref(),
+            ArrayProperties::Artists => None,
         }
     }
 
@@ -372,10 +376,32 @@ pub enum NumberProperties {
     Defense,
 }
 
+impl Display for NumberProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Cost => write!(f, "Cost"),
+            Self::Health => write!(f, "Health"),
+            Self::Power => write!(f, "Power"),
+            Self::Defense => write!(f, "Defense"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ArrayProperties {
     Functions,
     Kins,
+    Artists,
+}
+
+impl Display for ArrayProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Functions => write!(f, "Functions"),
+            Self::Kins => write!(f, "Kins"),
+            Self::Artists => write!(f, "Artists"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -384,6 +410,17 @@ pub enum StringProperties {
     Name,
     Type,
     Description,
+}
+
+impl Display for StringProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StringProperties::Id => write!(f, "ID"),
+            StringProperties::Name => write!(f, "Name"),
+            StringProperties::Type => write!(f, "Type"),
+            StringProperties::Description => write!(f, "Description"),
+        }
+    }
 }
 
 impl CardID {

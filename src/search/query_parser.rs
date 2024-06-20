@@ -218,20 +218,28 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
             },
             Token::Or(group1, group2) => match group2 {
                 None => return Err(Errors::InvalidOr),
-                Some(group2) => restrictions.push(QueryRestriction::Or(
-                    parse_tokens(group1)?,
-                    parse_tokens(group2)?,
-                )),
+                Some(group2) => {
+                    let mut group1 = parse_tokens(group1)?;
+                    group1.sort = Sort::None;
+                    let mut group2 = parse_tokens(group2)?;
+                    group2.sort = Sort::None;
+                    restrictions.push(QueryRestriction::Or(group1, group2));
+                }
             },
             Token::Xor(group1, group2) => match group2 {
                 None => return Err(Errors::InvalidOr),
-                Some(group2) => restrictions.push(QueryRestriction::Xor(
-                    parse_tokens(group1)?,
-                    parse_tokens(group2)?,
-                )),
+                Some(group2) => {
+                    let mut group1 = parse_tokens(group1)?;
+                    group1.sort = Sort::None;
+                    let mut group2 = parse_tokens(group2)?;
+                    group2.sort = Sort::None;
+                    restrictions.push(QueryRestriction::Xor(group1, group2));
+                }
             },
             Token::Group(group) => {
-                restrictions.push(QueryRestriction::Group(parse_tokens(group)?));
+                let mut group = parse_tokens(group)?;
+                group.sort = Sort::None;
+                restrictions.push(QueryRestriction::Group(group));
             }
             Token::Word(x) => {
                 name.push_str(x);
@@ -260,18 +268,26 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
             },
             Token::SuperParam(param, value) => match param.as_str() {
                 "devours" | "dev" | "de" | "devs" => {
-                    restrictions.push(QueryRestriction::Devours(parse_tokens(value)?));
+                    let mut parsed_subquery = parse_tokens(value)?;
+                    parsed_subquery.sort = Sort::None;
+                    restrictions.push(QueryRestriction::Devours(parsed_subquery));
                 }
                 "devouredby" | "devby" | "deby" | "dby" | "db" => {
-                    devoured_by = Some(Box::new(parse_tokens(value)?));
+                    let mut parsed_subquery = parse_tokens(value)?;
+                    parsed_subquery.sort = Sort::None;
+                    devoured_by = Some(Box::new(parsed_subquery));
                 }
                 par => return Err(Errors::UnknownSubQueryParam(par.to_owned())),
             },
             Token::Not(tokens) => {
-                restrictions.push(QueryRestriction::Not(parse_tokens(tokens)?));
+                let mut group = parse_tokens(tokens)?;
+                group.sort = Sort::None;
+                restrictions.push(QueryRestriction::Not(group));
             }
             Token::LenientNot(tokens) => {
-                restrictions.push(QueryRestriction::LenientNot(parse_tokens(tokens)?));
+                let mut group = parse_tokens(tokens)?;
+                group.sort = Sort::None;
+                restrictions.push(QueryRestriction::LenientNot(group));
             }
         }
     }

@@ -316,13 +316,10 @@ mod test {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("db:(n:\"infected fly\")");
-        println!("{parsed:#?}");
-        let cards = PrintableCards(
-            parsed
-                .map(|res| apply_restrictions(&res, cards.iter()))
-                .unwrap(),
-        );
-        println!("{cards}");
+        let parsed = query_parser::query_parser("k:insect fn:search").unwrap();
+        println!("{parsed}");
+        // println!("{parsed:#?}");
+        let cards = PrintableCards(apply_restrictions(&parsed, cards.iter()));
+        // println!("{cards}");
     }
 }
