@@ -108,10 +108,16 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                     word = String::new();
                 }
                 CharOrEnd::Char(':') => {
+                    if word.is_empty() {
+                        return Err(Errors::AttemptedEmptyParamName);
+                    }
                     mode = TokenMode::Param(word);
                     word = String::new();
                 }
                 CharOrEnd::Char(ch @ ('<' | '!' | '>' | '=')) => {
+                    if word.is_empty() {
+                        return Err(Errors::AttemptedEmptyParamName);
+                    }
                     mode = TokenMode::Param(word);
                     word = String::from(ch);
                 }

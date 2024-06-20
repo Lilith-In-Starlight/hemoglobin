@@ -316,7 +316,8 @@ mod test {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("k:insect fn:search").unwrap();
+        let parsed =
+            query_parser::query_parser("n:left OR (dby:(n:\"infected fly\") c>2 --p<5)").unwrap();
         println!("{parsed}");
         // println!("{parsed:#?}");
         let cards = PrintableCards(apply_restrictions(&parsed, cards.iter()));

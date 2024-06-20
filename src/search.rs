@@ -23,6 +23,7 @@ pub enum Errors {
     UnclosedString,
     UnclosedRegex,
     RegexErr(regex::Error),
+    AttemptedEmptyParamName,
 }
 
 #[derive(Debug, Clone)]
@@ -87,7 +88,7 @@ impl Display for QueryRestriction {
             QueryRestriction::Has(property, text) => match property {
                 ArrayProperties::Functions => write!(f, "which can be used to \"{text}\""),
                 property => write!(f, "whose {property} have \"{text}\" among them"),
-            }
+            },
             QueryRestriction::HasKw(keyword) => write!(f, "with a \"{keyword}\" keyword"),
             QueryRestriction::Not(query) => write!(f, "that aren't [{query}]"),
             QueryRestriction::LenientNot(query) => write!(
