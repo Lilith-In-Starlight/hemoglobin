@@ -66,6 +66,11 @@ impl TokenStack {
     }
 }
 
+enum CharOrEnd {
+    Char(char),
+    End,
+}
+
 #[allow(clippy::too_many_lines)]
 fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut tokens = TokenStack::default();
@@ -73,67 +78,66 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut mode = TokenMode::Word;
     let mut paren_count = 0;
     let mut polarity = QueryMatch::Match;
-    for ch in q.chars().chain(vec!['\n']) {
+    for ch in q.chars().map(CharOrEnd::Char).chain(vec![CharOrEnd::End]) {
         match mode {
             TokenMode::Word => match ch {
-                '-' => match polarity {
+                CharOrEnd::Char('-') => match polarity {
                     QueryMatch::Match => polarity = QueryMatch::NotMatch,
                     QueryMatch::NotMatch => polarity = QueryMatch::NotHave,
                     QueryMatch::NotHave => return Err(Errors::InvalidPolarity),
                 },
-                '(' if word.is_empty() => {
+                CharOrEnd::Char('(') if word.is_empty() => {
                     mode = TokenMode::Group;
                 }
-                ' ' | '\n' => {
-                    if !word.is_empty() {
-                        match word.as_str() {
-                            "OR" => {
-                                let top = tokens.pop().ok_or(Errors::InvalidOr)?;
-                                tokens.push(Token::Or(vec![top], None));
-                            }
-                            "XOR" => {
-                                let top = tokens.pop().ok_or(Errors::InvalidOr)?;
-                                tokens.push(Token::Xor(vec![top], None));
-                            }
-                            _ => {
-                                tokens.push(Token::Word(word).polar_wrap(polarity));
-                            }
+                CharOrEnd::Char(' ') | CharOrEnd::End => {
+                    match word.as_str() {
+                        "" => (),
+                        "OR" => {
+                            let top = tokens.pop().ok_or(Errors::InvalidOr)?;
+                            tokens.push(Token::Or(vec![top], None));
+                        }
+                        "XOR" => {
+                            let top = tokens.pop().ok_or(Errors::InvalidOr)?;
+                            tokens.push(Token::Xor(vec![top], None));
+                        }
+                        _ => {
+                            tokens.push(Token::Word(word).polar_wrap(polarity));
                         }
                     }
                     polarity = QueryMatch::Match;
                     word = String::new();
                 }
-                ':' => {
+                CharOrEnd::Char(':') => {
                     mode = TokenMode::Param(word);
                     word = String::new();
                 }
-                '<' | '!' | '>' | '=' => {
+                CharOrEnd::Char(ch @ ('<' | '!' | '>' | '=')) => {
                     mode = TokenMode::Param(word);
                     word = String::from(ch);
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
             },
             TokenMode::Param(ref param) => match ch {
-                ' ' | '\n' => {
+                CharOrEnd::Char(' ') | CharOrEnd::End => {
                     let tok = Token::Param(param.to_string(), word);
                     tokens.push(tok.polar_wrap(polarity));
                     polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
-                '"' if word.is_empty() => {
+                CharOrEnd::Char('"') if word.is_empty() => {
                     mode = TokenMode::QParam(param.to_string());
                 }
-                '/' if word.is_empty() => {
+                CharOrEnd::Char('/') if word.is_empty() => {
                     mode = TokenMode::RegexParam(param.to_string());
                 }
-                '(' if word.is_empty() => {
+                CharOrEnd::Char('(') if word.is_empty() => {
                     mode = TokenMode::SParam(param.to_string());
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
             },
             TokenMode::RegexParam(ref param) => match ch {
-                '\n' | '/' => {
+                CharOrEnd::End | CharOrEnd::Char('/') => {
                     let tok = Token::RegexParam(
                         param.to_string(),
                         Regex::new(&word.to_lowercase()).map_err(Errors::RegexErr)?,
@@ -143,53 +147,56 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                     word = String::new();
                     mode = TokenMode::Word;
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
             },
             TokenMode::QParam(ref param) => match ch {
-                '"' => {
+                CharOrEnd::Char('"') => {
                     let tok = Token::Param(param.to_string(), word);
                     tokens.push(tok.polar_wrap(polarity));
                     polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
+                CharOrEnd::End => return Err(Errors::UnclosedString),
             },
             TokenMode::SParam(ref param) => match ch {
-                ')' if paren_count == 0 => {
+                CharOrEnd::Char(')') if paren_count == 0 => {
                     let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
                     tokens.push(tok.polar_wrap(polarity));
                     polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
-                '(' => {
+                CharOrEnd::Char(ch @ '(') => {
                     paren_count += 1;
                     word.push(ch);
                 }
-                ')' if paren_count > 0 => {
+                CharOrEnd::Char(ch @ ')') if paren_count > 0 => {
                     paren_count -= 1;
                     word.push(ch);
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
+                CharOrEnd::End => return Err(Errors::UnclosedRegex),
             },
             TokenMode::Group => match ch {
-                ')' if paren_count == 0 => {
+                CharOrEnd::Char(')') if paren_count == 0 => {
                     let tok = Token::Group(tokenize_query(&word)?);
                     tokens.push(tok.polar_wrap(polarity));
                     polarity = QueryMatch::Match;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
-                '(' => {
+                CharOrEnd::Char(ch @ '(') => {
                     paren_count += 1;
                     word.push(ch);
                 }
-                ')' if paren_count > 0 => {
+                CharOrEnd::Char(ch @ ')') if paren_count > 0 => {
                     paren_count -= 1;
                     word.push(ch);
                 }
-                ch => word.push(ch),
+                CharOrEnd::Char(ch) => word.push(ch),
+                CharOrEnd::End => return Err(Errors::UnclosedSubquery),
             },
         }
     }

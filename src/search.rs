@@ -17,6 +17,9 @@ pub enum Errors {
     InvalidOrdering(String),
     InvalidPolarity,
     NotSortable,
+    UnclosedSubquery,
+    UnclosedString,
+    UnclosedRegex,
     RegexErr(regex::Error),
 }
 
