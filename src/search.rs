@@ -37,10 +37,6 @@ pub struct Query {
 impl Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut text_properties = vec![];
-        match self.name.as_str() {
-            "" => (),
-            name => text_properties.push(format!("with {name} written on them")),
-        }
         match &self.devoured_by {
             Some(devoured_by) => text_properties.push(format!("devoured by [{devoured_by}]")),
             None => (),
