@@ -1,7 +1,9 @@
 #![warn(clippy::pedantic)]
 
 use std::{
+    cell::RefCell,
     cmp::{max, min, Ordering},
+    collections::HashMap,
     ops::Not,
 };
 
@@ -51,9 +53,15 @@ impl Not for QueryMatch {
     }
 }
 
-// TODO: Optimize devouredby queries with a cache that is inputted as a &mut
+type Cache<T> = RefCell<HashMap<String, Vec<T>>>;
+
 #[allow(clippy::too_many_lines)]
-fn apply_restriction<'a, 'b, C, T, I>(card: &C, query: &Query, cards: &I) -> QueryMatch
+fn apply_restriction<'a, 'b, C, T, I>(
+    card: &C,
+    query: &Query,
+    cards: &I,
+    cache: &Cache<&'a T>,
+) -> QueryMatch
 where
     C: ReadProperties,
     T: ReadProperties + 'a + Clone,
@@ -79,18 +87,18 @@ where
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Xor(group1, group2) => {
-                let res1 = apply_restriction(card, group1, cards);
-                let res2 = apply_restriction(card, group2, cards);
+                let res1 = apply_restriction(card, group1, cards, cache);
+                let res2 = apply_restriction(card, group2, cards, cache);
                 filtered = filtered.and(res1.xor(res2));
             }
             QueryRestriction::Or(group1, group2) => {
                 filtered = filtered.and(
-                    apply_restriction(card, group1, cards)
-                        .or(apply_restriction(card, group2, cards)),
+                    apply_restriction(card, group1, cards, cache)
+                        .or(apply_restriction(card, group2, cards, cache)),
                 );
             }
             QueryRestriction::Group(group) => {
-                filtered = filtered.and(apply_restriction(card, group, cards));
+                filtered = filtered.and(apply_restriction(card, group, cards, cache));
             }
             QueryRestriction::Fuzzy(x) => {
                 filtered = filtered.and(if search::fuzzy(card, x) {
@@ -128,11 +136,11 @@ where
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Not(queryres) => {
-                filtered = filtered.and(!apply_restriction(card, queryres, cards));
+                filtered = filtered.and(!apply_restriction(card, queryres, cards, cache));
             }
             QueryRestriction::LenientNot(queryres) => {
                 filtered = filtered.and(
-                    if apply_restriction(card, queryres, cards) == QueryMatch::Match {
+                    if apply_restriction(card, queryres, cards, cache) == QueryMatch::Match {
                         QueryMatch::NotMatch
                     } else {
                         QueryMatch::Match
@@ -143,7 +151,8 @@ where
                 let matches = match_in_vec(card.get_keywords(), |keyword| {
                     if keyword.name == "devours" {
                         if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data {
-                            apply_restriction(&devoured_id, query, cards) == QueryMatch::Match
+                            apply_restriction(&devoured_id, query, cards, cache)
+                                == QueryMatch::Match
                         } else {
                             false
                         }
@@ -154,53 +163,63 @@ where
                 filtered = filtered.and(matches);
             }
             QueryRestriction::DevouredBy(devoured_by) => {
-                let cloned_cards = cards.clone();
-                let devourers: Vec<&T> = cards
-                    .clone()
-                    .into_iter()
-                    .filter(|card| {
-                        apply_restriction(card, devoured_by, &cloned_cards) == QueryMatch::Match
-                    })
-                    .collect();
+                let key = format!("{devoured_by}");
+                let devoured_cards;
+                let maybe_devourees = RefCell::borrow(cache).get(&key).cloned();
+                if let Some(value) = maybe_devourees {
+                    devoured_cards = value;
+                } else {
+                    let cloned_cards = cards.clone();
+                    let devourers: Vec<&T> = cards
+                        .clone()
+                        .into_iter()
+                        .filter(|card| {
+                            apply_restriction(card, devoured_by, &cloned_cards, cache)
+                                == QueryMatch::Match
+                        })
+                        .collect();
 
-                let mut queries: Vec<Query> = vec![];
+                    let mut queries: Vec<Query> = vec![];
 
-                for devourer in devourers {
-                    if let Some(Keyword {
-                        name: _,
-                        data: Some(KeywordData::CardID(card_id)),
-                    }) = devourer
-                        .get_keywords()
-                        .and_then(|x| x.iter().find(|x| x.name == "devours"))
-                    {
-                        queries.push(Query {
+                    for devourer in devourers {
+                        if let Some(Keyword {
+                            name: _,
+                            data: Some(KeywordData::CardID(card_id)),
+                        }) = devourer
+                            .get_keywords()
+                            .and_then(|x| x.iter().find(|x| x.name == "devours"))
+                        {
+                            queries.push(Query {
+                                name: String::new(),
+                                restrictions: card_id.get_as_query(),
+                                sort: Sort::None,
+                            });
+                        }
+                    }
+
+                    let devourees_query = queries
+                        .into_iter()
+                        .reduce(|first, second| Query {
                             name: String::new(),
-                            restrictions: card_id.get_as_query(),
+                            restrictions: vec![QueryRestriction::Or(first, second)],
+                            sort: Sort::None,
+                        })
+                        .unwrap_or(Query {
+                            name: String::new(),
+                            restrictions: vec![],
                             sort: Sort::None,
                         });
-                    }
+
+                    let devourees_query = Query {
+                        name: query.name.clone(),
+                        restrictions: devourees_query.restrictions,
+                        sort: query.sort,
+                    };
+
+                    devoured_cards = apply_restrictions(&devourees_query, cloned_cards);
+                    cache.borrow_mut().insert(key, devoured_cards.clone());
                 }
-
-                let devourees_query = queries
-                    .into_iter()
-                    .reduce(|first, second| Query {
-                        name: String::new(),
-                        restrictions: vec![QueryRestriction::Or(first, second)],
-                        sort: Sort::None,
-                    })
-                    .unwrap_or(Query {
-                        name: String::new(),
-                        restrictions: vec![],
-                        sort: Sort::None,
-                    });
-
-                let devourees_query = Query {
-                    name: query.name.clone(),
-                    restrictions: devourees_query.restrictions,
-                    sort: query.sort,
-                };
-
-                if apply_restrictions(&devourees_query, cloned_cards)
+                if devoured_cards
                     .iter()
                     .any(|x| x.get_name() == card.get_name())
                 {
@@ -235,9 +254,10 @@ where
     &'a C: ReadProperties,
 {
     let cards_clone = cards.clone();
+    let cache = Cache::new(HashMap::new());
     let mut results: Vec<&C> = cards
         .into_iter()
-        .filter(|card| apply_restriction(card, query, &cards_clone) == QueryMatch::Match)
+        .filter(|card| apply_restriction(card, query, &cards_clone, &cache) == QueryMatch::Match)
         .collect();
 
     match &query.sort {
