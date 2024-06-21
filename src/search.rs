@@ -29,7 +29,6 @@ pub enum Errors {
 #[derive(Debug, Clone)]
 pub struct Query {
     pub name: String,
-    pub devoured_by: Option<Box<Query>>,
     pub restrictions: Vec<QueryRestriction>,
     pub sort: Sort,
 }
@@ -37,16 +36,15 @@ pub struct Query {
 impl Display for Query {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut text_properties = vec![];
-        match &self.devoured_by {
-            Some(devoured_by) => text_properties.push(format!("devoured by [{devoured_by}]")),
-            None => (),
-        }
         for restriction in &self.restrictions {
             text_properties.push(format!("{restriction}"));
         }
         match &self.sort {
             Sort::None => (),
-            Sort::Fuzzy => text_properties.push("sorted by fuzzy match".to_string()),
+            Sort::Fuzzy if !self.name.is_empty() => {
+                text_properties.push("sorted by fuzzy match".to_string());
+            }
+            Sort::Fuzzy => text_properties.push("sorted by Name in Ascending order".to_owned()),
             Sort::Alphabet(property, order) => {
                 text_properties.push(format!("sorted by {property} in {order} order"));
             }
@@ -70,6 +68,9 @@ impl Display for Query {
 impl Display for QueryRestriction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            QueryRestriction::DevouredBy(devourer) => {
+                write!(f, "which are devoured by [{devourer}]")
+            }
             QueryRestriction::Fuzzy(text) => write!(f, "with {text} written on them"),
             QueryRestriction::Devours(devourees) => write!(f, "that devour [{devourees}]"),
             QueryRestriction::Comparison(property, comparison) => {
@@ -102,6 +103,7 @@ impl Display for QueryRestriction {
 pub enum QueryRestriction {
     Fuzzy(String),
     Devours(Query),
+    DevouredBy(Query),
     Comparison(NumberProperties, Comparison),
     Contains(StringProperties, String),
     Regex(StringProperties, Regex),

@@ -51,7 +51,15 @@ impl Not for QueryMatch {
     }
 }
 
-fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
+// TODO: Optimize devouredby queries with a cache that is inputted as a &mut
+#[allow(clippy::too_many_lines)]
+fn apply_restriction<'a, 'b, C, T, I>(card: &C, query: &Query, cards: &I) -> QueryMatch
+where
+    C: ReadProperties,
+    T: ReadProperties + 'a + Clone,
+    &'a T: ReadProperties,
+    I: IntoIterator<Item = &'a T> + Clone,
+{
     let mut filtered = QueryMatch::Match;
     for res in &query.restrictions {
         match res {
@@ -71,16 +79,18 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Xor(group1, group2) => {
-                let res1 = apply_restriction(card, group1);
-                let res2 = apply_restriction(card, group2);
+                let res1 = apply_restriction(card, group1, cards);
+                let res2 = apply_restriction(card, group2, cards);
                 filtered = filtered.and(res1.xor(res2));
             }
             QueryRestriction::Or(group1, group2) => {
-                filtered = filtered
-                    .and(apply_restriction(card, group1).or(apply_restriction(card, group2)));
+                filtered = filtered.and(
+                    apply_restriction(card, group1, cards)
+                        .or(apply_restriction(card, group2, cards)),
+                );
             }
             QueryRestriction::Group(group) => {
-                filtered = filtered.and(apply_restriction(card, group));
+                filtered = filtered.and(apply_restriction(card, group, cards));
             }
             QueryRestriction::Fuzzy(x) => {
                 filtered = filtered.and(if search::fuzzy(card, x) {
@@ -118,21 +128,22 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Not(queryres) => {
-                filtered = filtered.and(!apply_restriction(card, queryres));
+                filtered = filtered.and(!apply_restriction(card, queryres, cards));
             }
             QueryRestriction::LenientNot(queryres) => {
-                filtered =
-                    filtered.and(if apply_restriction(card, queryres) == QueryMatch::Match {
+                filtered = filtered.and(
+                    if apply_restriction(card, queryres, cards) == QueryMatch::Match {
                         QueryMatch::NotMatch
                     } else {
                         QueryMatch::Match
-                    });
+                    },
+                );
             }
             QueryRestriction::Devours(query) => {
                 let matches = match_in_vec(card.get_keywords(), |keyword| {
                     if keyword.name == "devours" {
                         if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data {
-                            apply_restriction(&devoured_id, query) == QueryMatch::Match
+                            apply_restriction(&devoured_id, query, cards) == QueryMatch::Match
                         } else {
                             false
                         }
@@ -141,6 +152,62 @@ fn apply_restriction(card: &impl ReadProperties, query: &Query) -> QueryMatch {
                     }
                 });
                 filtered = filtered.and(matches);
+            }
+            QueryRestriction::DevouredBy(devoured_by) => {
+                let cloned_cards = cards.clone();
+                let devourers: Vec<&T> = cards
+                    .clone()
+                    .into_iter()
+                    .filter(|card| {
+                        apply_restriction(card, devoured_by, &cloned_cards) == QueryMatch::Match
+                    })
+                    .collect();
+
+                let mut queries: Vec<Query> = vec![];
+
+                for devourer in devourers {
+                    if let Some(Keyword {
+                        name: _,
+                        data: Some(KeywordData::CardID(card_id)),
+                    }) = devourer
+                        .get_keywords()
+                        .and_then(|x| x.iter().find(|x| x.name == "devours"))
+                    {
+                        queries.push(Query {
+                            name: String::new(),
+                            restrictions: card_id.get_as_query(),
+                            sort: Sort::None,
+                        });
+                    }
+                }
+
+                let devourees_query = queries
+                    .into_iter()
+                    .reduce(|first, second| Query {
+                        name: String::new(),
+                        restrictions: vec![QueryRestriction::Or(first, second)],
+                        sort: Sort::None,
+                    })
+                    .unwrap_or(Query {
+                        name: String::new(),
+                        restrictions: vec![],
+                        sort: Sort::None,
+                    });
+
+                let devourees_query = Query {
+                    name: query.name.clone(),
+                    restrictions: devourees_query.restrictions,
+                    sort: query.sort,
+                };
+
+                if apply_restrictions(&devourees_query, cloned_cards)
+                    .iter()
+                    .any(|x| x.get_name() == card.get_name())
+                {
+                    filtered = filtered.and(QueryMatch::Match);
+                } else {
+                    filtered = filtered.and(QueryMatch::NotMatch);
+                }
             }
         }
     }
@@ -161,100 +228,41 @@ pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMat
 }
 
 #[must_use]
-pub fn apply_restrictions<'a, C: ReadProperties + Clone + 'a, T: Iterator<Item = &'a C> + Clone>(
-    query: &Query,
-    cards: T,
-) -> Vec<&'a C>
+pub fn apply_restrictions<'a, 'b, C, I>(query: &Query, cards: I) -> Vec<&'a C>
 where
+    C: ReadProperties + Clone + 'a,
+    I: IntoIterator<Item = &'a C> + Clone + 'b,
     &'a C: ReadProperties,
 {
-    match query.devoured_by {
-        None => {
-            let mut results: Vec<&C> = cards
-                .filter(|card| apply_restriction(card, query) == QueryMatch::Match)
-                .collect();
+    let cards_clone = cards.clone();
+    let mut results: Vec<&C> = cards
+        .into_iter()
+        .filter(|card| apply_restriction(card, query, &cards_clone) == QueryMatch::Match)
+        .collect();
 
-            match &query.sort {
-                Sort::None => (),
-                Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
-                    weighted_compare(b, &query.name)
-                        .partial_cmp(&weighted_compare(a, &query.name))
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                }),
-                Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
-                Sort::Alphabet(property, search::Ordering::Ascending) => results.sort_by(|a, b| {
-                    Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))
-                }),
-                Sort::Numeric(property, search::Ordering::Ascending) => results.sort_by(|a, b| {
-                    Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))
-                }),
-                Sort::Alphabet(property, search::Ordering::Descending) => {
-                    results.sort_by(|a, b| {
-                        Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))
-                            .reverse()
-                    });
-                }
-                Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
-                    Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
-                }),
-            }
-
-            results
+    match &query.sort {
+        Sort::None => (),
+        Sort::Fuzzy if !query.name.is_empty() => results.sort_by(|a, b| {
+            weighted_compare(b, &query.name)
+                .partial_cmp(&weighted_compare(a, &query.name))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
+        Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
+        Sort::Alphabet(property, search::Ordering::Ascending) => results
+            .sort_by(|a, b| Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))),
+        Sort::Numeric(property, search::Ordering::Ascending) => results
+            .sort_by(|a, b| Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))),
+        Sort::Alphabet(property, search::Ordering::Descending) => {
+            results.sort_by(|a, b| {
+                Ord::cmp(&a.get_str_property(property), &b.get_str_property(property)).reverse()
+            });
         }
-        Some(ref devoured_by) => {
-            let devourers: Vec<&C> = cards
-                .clone()
-                .filter(|card| apply_restriction(card, devoured_by) == QueryMatch::Match)
-                .collect();
-
-            let mut queries: Vec<Query> = vec![];
-
-            for devourer in devourers {
-                if let Some(Keyword {
-                    name: _,
-                    data: Some(KeywordData::CardID(card_id)),
-                }) = devourer
-                    .get_keywords()
-                    .and_then(|x| x.iter().find(|x| x.name == "devours"))
-                {
-                    queries.push(Query {
-                        name: String::new(),
-                        devoured_by: None,
-                        restrictions: card_id.get_as_query(),
-                        sort: Sort::None,
-                    });
-                }
-            }
-
-            let mut devourees_query = queries
-                .into_iter()
-                .reduce(|first, second| Query {
-                    name: String::new(),
-                    devoured_by: None,
-                    restrictions: vec![QueryRestriction::Or(first, second)],
-                    sort: Sort::None,
-                })
-                .unwrap_or(Query {
-                    name: String::new(),
-                    devoured_by: None,
-                    restrictions: vec![],
-                    sort: Sort::None,
-                });
-
-            devourees_query
-                .restrictions
-                .append(&mut query.restrictions.clone());
-
-            let devourees_query = Query {
-                name: query.name.clone(),
-                devoured_by: None,
-                restrictions: devourees_query.restrictions,
-                sort: query.sort,
-            };
-
-            apply_restrictions(&devourees_query, cards)
-        }
+        Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
+            Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
+        }),
     }
+
+    results
 }
 
 #[must_use]
@@ -316,11 +324,10 @@ mod test {
         let data =
             fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed =
-            query_parser::query_parser("n:left OR (dby:(n:\"infected fly\") c>2 --p<5)").unwrap();
+        let parsed = query_parser::query_parser("n:infected OR dby:(n:\"infected fly\")").unwrap();
         println!("{parsed}");
         // println!("{parsed:#?}");
         let cards = PrintableCards(apply_restrictions(&parsed, cards.iter()));
-        // println!("{cards}");
+        println!("{cards}");
     }
 }

@@ -404,7 +404,7 @@ impl Display for ArrayProperties {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum StringProperties {
     Id,
     Name,

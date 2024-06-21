@@ -213,7 +213,6 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     let mut restrictions = vec![];
     let mut name = String::new();
     let mut sort = Sort::Fuzzy;
-    let mut devoured_by = None;
     for word in q {
         match word {
             Token::RegexParam(field, regex) => match get_property_from_name(field.as_str())? {
@@ -281,7 +280,8 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                 "devouredby" | "devby" | "deby" | "dby" | "db" => {
                     let mut parsed_subquery = parse_tokens(value)?;
                     parsed_subquery.sort = Sort::None;
-                    devoured_by = Some(Box::new(parsed_subquery));
+                    restrictions.push(QueryRestriction::DevouredBy(parsed_subquery));
+                    // devoured_by = Some(Box::new(parsed_subquery));
                 }
                 par => return Err(Errors::UnknownSubQueryParam(par.to_owned())),
             },
@@ -303,7 +303,6 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
     }
     Ok(Query {
         name,
-        devoured_by,
         restrictions,
         sort,
     })
