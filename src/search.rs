@@ -71,7 +71,7 @@ impl Display for QueryRestriction {
             QueryRestriction::DevouredBy(devourer) => {
                 write!(f, "which are devoured by [{devourer}]")
             }
-            QueryRestriction::Fuzzy(text) => write!(f, "with {text} written on them"),
+            QueryRestriction::Fuzzy(text) => write!(f, "with \"{text}\" written on them"),
             QueryRestriction::Devours(devourees) => write!(f, "that devour [{devourees}]"),
             QueryRestriction::Comparison(property, comparison) => {
                 write!(f, "with {property} {comparison}")
