@@ -1,3 +1,4 @@
+use rand::prelude::SliceRandom;
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
@@ -420,6 +421,16 @@ impl Display for StringProperties {
             StringProperties::Type => write!(f, "Type"),
             StringProperties::Description => write!(f, "Description"),
         }
+    }
+}
+
+impl Card {
+    #[must_use]
+    pub fn get_image(&self) -> String {
+        self.img
+            .choose(&mut rand::thread_rng())
+            .cloned()
+            .unwrap_or(self.name.to_lowercase().replace(' ', ""))
     }
 }
 
