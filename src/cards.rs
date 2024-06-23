@@ -430,7 +430,7 @@ impl Card {
         self.img
             .choose(&mut rand::thread_rng())
             .cloned()
-            .unwrap_or(self.name.to_lowercase().replace(' ', ""))
+            .unwrap_or(self.name.replace(' ', ""))
     }
 }
 
