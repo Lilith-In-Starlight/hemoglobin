@@ -12,7 +12,7 @@ pub mod search;
 
 #[cfg(test)]
 mod test {
-    use std::{fmt::Display, fs, path::Path};
+    use std::{fmt::Display, fs};
 
     use crate::{
         cards::Card,
