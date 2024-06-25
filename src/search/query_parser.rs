@@ -347,7 +347,7 @@ pub fn query_parser(q: &str) -> Result<Query, Errors> {
     parse_tokens(&q)
 }
 
-fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
+pub(crate) fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
     match s.parse::<usize>() {
         Ok(x) => Ok(Comparison::Equal(x)),
         Err(_) => {

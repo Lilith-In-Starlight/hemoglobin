@@ -3,10 +3,10 @@ pub mod imprecise_eq;
 pub mod imprecise_ord;
 use std::{cmp::Ordering, fmt::Display};
 
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::search::Ternary;
+use crate::search::{query_parser::text_comparison_parser, Ternary};
 
 #[derive(Serialize, Debug, PartialEq, Clone)]
 pub enum MaybeImprecise {
@@ -119,13 +119,7 @@ impl<'de> Deserialize<'de> for MaybeVar {
         D: Deserializer<'de>,
     {
         let value = Value::deserialize(deserializer)?;
-        if let Some(text) = value.as_str() {
-            return Ok(MaybeVar::Var(text.chars().next().unwrap()));
-        }
-        if let Some(text) = value.as_u64() {
-            return Ok(MaybeVar::Const(text.try_into().unwrap()));
-        }
-        Ok(MaybeVar::default())
+        deserialize_maybe_var::<D>(&value)
     }
 }
 
@@ -135,16 +129,43 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
         D: Deserializer<'de>,
     {
         let value = Value::deserialize(deserializer)?;
-        if let Some(text) = value.as_str() {
-            return Ok(MaybeImprecise::Precise(MaybeVar::Var(
-                text.chars().next().unwrap(),
-            )));
+        if let Ok(x) = deserialize_maybe_var::<D>(&value) {
+            Ok(MaybeImprecise::Precise(x))
+        } else {
+            if let Some(text) = value.as_str() {
+                let comparison =
+                    text_comparison_parser(text).map_err(|x| Error::custom(format!("{x:#?}")))?;
+                return Ok(MaybeImprecise::Imprecise(comparison));
+            }
+            Err(Error::custom(
+                "Numbers that might be imprecise must be integers, single letters, or comparisons",
+            ))
         }
-        if let Some(text) = value.as_u64() {
-            return Ok(MaybeImprecise::Precise(MaybeVar::Const(
-                text.try_into().unwrap(),
-            )));
-        }
-        Ok(MaybeImprecise::Precise(MaybeVar::default()))
     }
+}
+
+fn deserialize_maybe_var<'de, D: Deserializer<'de>>(value: &Value) -> Result<MaybeVar, D::Error> {
+    if let Some(text) = value.as_str() {
+        match text.chars().next() {
+            Some(char) if char.is_alphabetic() => return Ok(MaybeVar::Var(char)),
+            _ => {
+                return Err(Error::custom(
+                    "Numbers can only be single letters or integers",
+                ))
+            }
+        }
+    }
+    if let Some(text) = value.as_u64() {
+        match text.try_into() {
+            Ok(number) => return Ok(MaybeVar::Const(number)),
+            Err(err) => {
+                return Err(Error::custom(format!(
+                    "Error while turning u64 into usize for a number: {err}"
+                )))
+            }
+        }
+    }
+    Err(Error::custom(
+        "Numbers can only be single letters or integers",
+    ))
 }

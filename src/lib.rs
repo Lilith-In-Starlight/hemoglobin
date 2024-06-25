@@ -35,7 +35,7 @@ mod test {
     fn test_search() {
         let data = fs::read_to_string("./cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("dev:(c=1) so:c").unwrap();
+        let parsed = query_parser::query_parser("dev:(c>1) so:c").unwrap();
         println!("{parsed}");
         // println!("{parsed:#?}");
         let cards = PrintableCards(search(&parsed, cards.iter()));

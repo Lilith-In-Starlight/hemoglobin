@@ -80,7 +80,7 @@ impl Compare for MaybeImprecise {
             MaybeImprecise::Precise(x) => (x.assume() < comparison).into(),
             MaybeImprecise::Imprecise(x) => match x {
                 Comparison::Equal(x) => (*x < comparison).into(),
-                Comparison::GreaterThan(x) => (*x - 1 < comparison).into(),
+                Comparison::GreaterThan(x) => (*x < comparison - 1).into(),
                 Comparison::GreaterThanOrEqual(x) => (*x < comparison).into(),
                 Comparison::LowerThan(_) => Ternary::True,
                 Comparison::LowerThanOrEqual(_) => Ternary::True,
