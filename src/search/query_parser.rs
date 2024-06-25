@@ -5,7 +5,7 @@ use crate::{
     numbers::Comparison,
 };
 
-use super::{Errors, Ordering, Query, QueryMatch, QueryRestriction, Sort};
+use super::{Errors, Ordering, Query, QueryRestriction, Sort, Ternary};
 
 #[derive(Debug)]
 enum Token {
@@ -21,11 +21,11 @@ enum Token {
 }
 
 impl Token {
-    fn polar_wrap(self, polarity: QueryMatch) -> Token {
+    fn polar_wrap(self, polarity: Ternary) -> Token {
         match polarity {
-            QueryMatch::Match => self,
-            QueryMatch::NotMatch => Token::Not(vec![self]),
-            QueryMatch::NotHave => Token::LenientNot(vec![self]),
+            Ternary::True => self,
+            Ternary::False => Token::Not(vec![self]),
+            Ternary::Void => Token::LenientNot(vec![self]),
         }
     }
 }
@@ -77,14 +77,14 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
     let mut word = String::new();
     let mut mode = TokenMode::Word;
     let mut paren_count = 0;
-    let mut polarity = QueryMatch::Match;
+    let mut polarity = Ternary::True;
     for ch in q.chars().map(CharOrEnd::Char).chain(vec![CharOrEnd::End]) {
         match mode {
             TokenMode::Word => match ch {
                 CharOrEnd::Char('-') => match polarity {
-                    QueryMatch::Match => polarity = QueryMatch::NotMatch,
-                    QueryMatch::NotMatch => polarity = QueryMatch::NotHave,
-                    QueryMatch::NotHave => return Err(Errors::InvalidPolarity),
+                    Ternary::True => polarity = Ternary::False,
+                    Ternary::False => polarity = Ternary::Void,
+                    Ternary::Void => return Err(Errors::InvalidPolarity),
                 },
                 CharOrEnd::Char('(') if word.is_empty() => {
                     mode = TokenMode::Group;
@@ -104,7 +104,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                             tokens.push(Token::Word(word).polar_wrap(polarity));
                         }
                     }
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                 }
                 CharOrEnd::Char(':') => {
@@ -127,7 +127,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 CharOrEnd::Char(' ') | CharOrEnd::End => {
                     let tok = Token::Param(param.to_string(), word);
                     tokens.push(tok.polar_wrap(polarity));
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -149,7 +149,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                         Regex::new(&word.to_lowercase()).map_err(Errors::RegexErr)?,
                     );
                     tokens.push(tok.polar_wrap(polarity));
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -159,7 +159,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 CharOrEnd::Char('"') => {
                     let tok = Token::Param(param.to_string(), word);
                     tokens.push(tok.polar_wrap(polarity));
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -170,7 +170,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 CharOrEnd::Char(')') if paren_count == 0 => {
                     let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
                     tokens.push(tok.polar_wrap(polarity));
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                     mode = TokenMode::Word;
                 }
@@ -189,7 +189,7 @@ fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
                 CharOrEnd::Char(')') if paren_count == 0 => {
                     let tok = Token::Group(tokenize_query(&word)?);
                     tokens.push(tok.polar_wrap(polarity));
-                    polarity = QueryMatch::Match;
+                    polarity = Ternary::True;
                     word = String::new();
                     mode = TokenMode::Word;
                 }

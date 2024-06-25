@@ -6,7 +6,7 @@ use std::{cmp::Ordering, fmt::Display};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::search::QueryMatch;
+use crate::search::Ternary;
 
 #[derive(Serialize, Debug, PartialEq, Clone)]
 pub enum MaybeImprecise {
@@ -60,12 +60,12 @@ impl MaybeVar {
 }
 
 pub trait Compare {
-    fn gt(&self, comparison: usize) -> QueryMatch;
-    fn gt_eq(&self, comparison: usize) -> QueryMatch;
-    fn lt(&self, comparison: usize) -> QueryMatch;
-    fn lt_eq(&self, comparison: usize) -> QueryMatch;
-    fn eq(&self, comparison: usize) -> QueryMatch;
-    fn ne(&self, comparison: usize) -> QueryMatch;
+    fn gt(&self, comparison: usize) -> Ternary;
+    fn gt_eq(&self, comparison: usize) -> Ternary;
+    fn lt(&self, comparison: usize) -> Ternary;
+    fn lt_eq(&self, comparison: usize) -> Ternary;
+    fn eq(&self, comparison: usize) -> Ternary;
+    fn ne(&self, comparison: usize) -> Ternary;
 }
 
 pub trait ImpreciseEq<Other> {
@@ -101,7 +101,7 @@ impl Display for Comparison {
 }
 
 impl Comparison {
-    pub fn compare<T: Compare>(&self, a: &T) -> QueryMatch {
+    pub fn compare<T: Compare>(&self, a: &T) -> Ternary {
         match self {
             Comparison::GreaterThan(x) => a.gt(*x),
             Comparison::Equal(x) => a.eq(*x),
