@@ -1,5 +1,11 @@
 #![warn(clippy::pedantic)]
 
+//! Hemolymph is a library containing data structures and functions useful for the card game Bloodless. It is used by [Hemolymph](http://hemolymph.net), the official card search engine.
+//!
+//! The two datastructures are `Card`, which represents a card and `CardID`, which represents a card identity. Card identities in this library do not represent card identities as defined by the game's rules, but rather as a more general structure for identifying cards.
+//!
+//! This library contains the search functions used by Hemolymph.
+
 use std::{
     cell::RefCell,
     cmp::{max, min, Ordering},
@@ -14,18 +20,29 @@ use search::{Query, QueryRestriction, Sort};
 pub mod cards;
 pub mod search;
 
+/// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryMatch {
+    /// Card did not have the requested property.
     NotHave,
+    /// Card had the requested property and it did not matched the requested value.
     NotMatch,
+    /// Card had the requested property and it matched the requested value.
     Match,
 }
 
 impl QueryMatch {
-    fn or(self, b: Self) -> Self {
+    /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
+    #[must_use]
+    pub fn or(self, b: Self) -> Self {
         max(self, b)
     }
-    fn xor(self, b: Self) -> Self {
+    /// A ternary XOR which outputs the highest-valued result between `self` and `b`, if they are not equal.
+    /// If both values are `Match` or `NotMatch`, the output will be `NotMatch`.
+    /// If both values are `NotHave`, the output will be `NotHave`.
+    /// If no value is Match and there is a `NotHave`, the output will be `NotHave`.
+    #[must_use]
+    pub fn xor(self, b: Self) -> Self {
         match (self, b) {
             (Self::Match, Self::Match) => Self::NotMatch,
             (Self::NotHave, Self::NotHave) => Self::NotHave,
@@ -36,7 +53,9 @@ impl QueryMatch {
             }
         }
     }
-    fn and(self, b: Self) -> Self {
+    /// A ternary AND which outputs the lowest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
+    #[must_use]
+    pub fn and(self, b: Self) -> Self {
         min(self, b)
     }
 }
@@ -44,6 +63,7 @@ impl QueryMatch {
 impl Not for QueryMatch {
     type Output = QueryMatch;
 
+    /// Ternary NOT where `NotHave` is considered opposite to itself.
     fn not(self) -> Self::Output {
         match self {
             Self::Match => Self::NotMatch,
@@ -53,8 +73,11 @@ impl Not for QueryMatch {
     }
 }
 
+/// The Cache for `devouredby` queries.
 type Cache<T> = RefCell<HashMap<String, Vec<T>>>;
 
+/// This function checks whether a `card` matches a specific `query`'s restrictions. Since `devouredby` queries always require two searches, the results of the first search are stored in a `cache` that is internally mutable. This cache is only ever mutated the first time a devouredby query is executed.
+/// The sum total of available `cards` is passed in order to perform searches. This function clones these cards, so this value should be an Iterator.
 #[allow(clippy::too_many_lines)]
 fn apply_restriction<'a, 'b, C, T, I>(
     card: &C,
@@ -233,6 +256,7 @@ where
     filtered
 }
 
+/// This function is used to check whether any part of an optional `vec` fulfills a `cond`ition.
 pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMatch {
     match vec {
         Some(vec) => {
@@ -246,6 +270,7 @@ pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMat
     }
 }
 
+/// Function that takes `cards` and outputs a vector pointing to all the cards that matched the queries.
 #[must_use]
 pub fn apply_restrictions<'a, 'b, C, I>(query: &Query, cards: I) -> Vec<&'a C>
 where
@@ -285,6 +310,8 @@ where
     results
 }
 
+/// Compares a card's text with a given string and outputs a value for how much it matched the text, prioritizing in this order: Names, types, descriptions, kins, keywords.
+/// Notably, since a card's keywords are also in its description, keywords are ranked slightly higher than they are supposed to. This is not a huge deal, but it is a thing that might be good to be aware of.
 #[must_use]
 pub fn weighted_compare(a: &impl ReadProperties, b: &str) -> f32 {
     let mut result = 0.0;

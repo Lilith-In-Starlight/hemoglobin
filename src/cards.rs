@@ -5,31 +5,49 @@ use serde::{Deserialize, Serialize};
 
 use crate::search::{Comparison, QueryRestriction};
 
+/// Data structure for Cards. All fields are mandatory.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct Card {
+    /// A value that uniquely identifies the card. This is necessary because many cards may have the same name.
     pub id: String,
+    /// The card's name.
     pub name: String,
+    /// Image names that the card may use. If this is empty, the name is used to generate an image name.
     #[serde(default)]
     pub img: Vec<String>,
+    /// The card's text, excluding cost, stats and typeline.
     pub description: String,
+    /// The card's blood cost.
     pub cost: usize,
+    /// The card's health.
     pub health: usize,
+    /// The card's overkill protection.
     pub defense: usize,
+    /// The card's power.
     pub power: usize,
+    /// The card's type (as per the game).
     pub r#type: String,
     #[serde(default)]
+    /// Keywords the card's text has.
     pub keywords: Vec<Keyword>,
     #[serde(default)]
+    /// Kins of the card, must include parent kins.
     pub kins: Vec<String>,
     #[serde(default)]
+    /// Will be used to provide an official interpretation of the card's text.
     pub abilities: Vec<String>,
     #[serde(default)]
+    /// Artists who made the card's art.
     pub artists: Vec<String>,
+    /// What set the card belongs to.
     pub set: String,
+    /// Where is the card legal.
     pub legality: HashMap<String, String>,
     #[serde(default)]
+    /// Other tags you might add to the card.
     pub other: Vec<String>,
     #[serde(default)]
+    /// What the card can be used for.
     pub functions: Vec<String>,
 }
 
@@ -50,18 +68,29 @@ impl Display for Card {
     }
 }
 
+/// This trait is used in card generics. It is useful when you want a function to accept `CardID`s and not only `Card`s.
 pub trait ReadProperties {
+    /// Return a card's numeric property, if it has it.
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize>;
+    /// Return a card's text property, if it has it.
     fn get_str_property(&self, property: &StringProperties) -> Option<&str>;
+    /// Return a card's array property, if it has it.
     fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]>;
+    /// Return a card's keywords, if it has them. It may not have them if it is a `CardID`.
     fn get_keywords(&self) -> Option<&[Keyword]>;
+    /// Return a card's name, if it has one. It may not have one if it is a `CardID`.
     fn get_name(&self) -> Option<&str>;
+    /// Return a card's text, if it has one. It may not have one if it is a `CardID`.
     fn get_description(&self) -> Option<&str>;
+    /// Return a card's type, if it has one. It may not have one if it is a `CardID`.
     fn get_type(&self) -> Option<&str>;
+    /// Return a card's kins, if it has them. It may not have them if it is a `CardID`.
     fn get_kins(&self) -> Option<&[String]>;
 }
 
 impl ReadProperties for Card {
+    /// Return a card's numeric property, if it has it.
+    /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => Some(self.cost),
@@ -89,6 +118,8 @@ impl ReadProperties for Card {
         }
     }
 
+    /// Return a card's text property, if it has it.
+    /// Always returns Some.
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         Some(match property {
             StringProperties::Id => &self.id,
@@ -98,6 +129,8 @@ impl ReadProperties for Card {
         })
     }
 
+    /// Return a card's array property, if it has it.
+    /// Always returns Some.
     fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
         Some(match property {
             ArrayProperties::Functions => &self.functions,
@@ -106,28 +139,37 @@ impl ReadProperties for Card {
         })
     }
 
+    /// Return a card's keywords. Always returns Some. If the card has no keywords, it will return Some empty array.
     fn get_keywords(&self) -> Option<&[Keyword]> {
         Some(&self.keywords)
     }
 
+    /// Return a card's name. Always returns Some. If the card has no name, it will return Some empty string.
+    /// Importantly, a `Card` should always have a name.
     fn get_name(&self) -> Option<&str> {
         Some(&self.name)
     }
 
+    /// Return a card's description. Always returns Some. If the card has no description, it will return Some empty string.
     fn get_description(&self) -> Option<&str> {
         Some(&self.description)
     }
 
+    /// Return a card's type. Always returns Some. If the card has no type, it will return Some empty string.
+    /// Importantly, a `Card` should always have a type.
     fn get_type(&self) -> Option<&str> {
         Some(&self.r#type)
     }
 
+    /// Return a card's kins. Always returns Some. If the card has no kins, it will return Some empty array.
     fn get_kins(&self) -> Option<&[String]> {
         Some(&self.kins)
     }
 }
 
 impl ReadProperties for &Card {
+    /// Return a card's numeric property, if it has it.
+    /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => Some(self.cost),
@@ -155,6 +197,8 @@ impl ReadProperties for &Card {
         }
     }
 
+    /// Return a card's text property, if it has it.
+    /// Always returns Some.
     fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
         Some(match property {
             StringProperties::Id => &self.id,
@@ -164,6 +208,8 @@ impl ReadProperties for &Card {
         })
     }
 
+    /// Return a card's array property, if it has it.
+    /// Always returns Some.
     fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
         Some(match property {
             ArrayProperties::Functions => &self.functions,
@@ -172,22 +218,29 @@ impl ReadProperties for &Card {
         })
     }
 
+    /// Return a card's keywords. Always returns Some. If the card has no keywords, it will return Some empty array.
     fn get_keywords(&self) -> Option<&[Keyword]> {
         Some(&self.keywords)
     }
 
+    /// Return a card's name. Always returns Some. If the card has no name, it will return Some empty string.
+    /// Importantly, a `Card` should always have a name.
     fn get_name(&self) -> Option<&str> {
         Some(&self.name)
     }
 
+    /// Return a card's description. Always returns Some. If the card has no description, it will return Some empty string.
     fn get_description(&self) -> Option<&str> {
         Some(&self.description)
     }
 
+    /// Return a card's type. Always returns Some. If the card has no type, it will return Some empty string.
+    /// Importantly, a `Card` should always have a type.
     fn get_type(&self) -> Option<&str> {
         Some(&self.r#type)
     }
 
+    /// Return a card's kins. Always returns Some. If the card has no kins, it will return Some empty array.
     fn get_kins(&self) -> Option<&[String]> {
         Some(&self.kins)
     }
@@ -325,6 +378,7 @@ impl ReadProperties for &CardID {
     }
 }
 
+/// Data structure for card identities. These card identities are slightly more general than the concept within the game, as they allow you to match things that are only relevant for searching cards.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct CardID {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -355,6 +409,7 @@ pub struct CardID {
     pub functions: Option<Vec<String>>,
 }
 
+/// A keyword may contain data. This data may be a string or a `CardID`.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
@@ -362,6 +417,7 @@ pub enum KeywordData {
     String(String),
 }
 
+/// A card's Keyword.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Keyword {
     pub name: String,
@@ -369,6 +425,7 @@ pub struct Keyword {
     pub data: Option<KeywordData>,
 }
 
+/// A card's numerical properties
 #[derive(Debug, Clone, Copy)]
 pub enum NumberProperties {
     Cost,
@@ -388,6 +445,7 @@ impl Display for NumberProperties {
     }
 }
 
+/// A card's array properties
 #[derive(Debug, Clone, Copy)]
 pub enum ArrayProperties {
     Functions,
@@ -405,6 +463,7 @@ impl Display for ArrayProperties {
     }
 }
 
+/// A card's text properties
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum StringProperties {
     Id,
@@ -425,6 +484,7 @@ impl Display for StringProperties {
 }
 
 impl Card {
+    /// Obtains a randomly selected image name from the `Card`'s img field. If it can't, it gets an image name based on its name.
     #[must_use]
     pub fn get_image(&self) -> String {
         self.img
@@ -436,6 +496,7 @@ impl Card {
 
 impl CardID {
     #[must_use]
+    /// Creates a vector of `QueryRestriction`s defined by the `CardID`.
     pub fn get_as_query(&self) -> Vec<QueryRestriction> {
         let mut restrictions = vec![];
 

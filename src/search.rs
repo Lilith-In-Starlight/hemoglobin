@@ -9,6 +9,7 @@ use crate::{
     QueryMatch,
 };
 
+/// Errors that might happen during searching
 #[derive(Debug)]
 pub enum Errors {
     NonRegexable(String),
@@ -26,6 +27,7 @@ pub enum Errors {
     AttemptedEmptyParamName,
 }
 
+/// Represents a search query
 #[derive(Debug, Clone)]
 pub struct Query {
     pub name: String,
@@ -99,6 +101,7 @@ impl Display for QueryRestriction {
     }
 }
 
+/// Represents a specific restriction that a `Query` will apply to cards.
 #[derive(Debug, Clone)]
 pub enum QueryRestriction {
     Fuzzy(String),
@@ -116,6 +119,7 @@ pub enum QueryRestriction {
     Xor(Query, Query),
 }
 
+/// Represents a specific ordering for sorting.
 #[derive(Debug, Clone, Copy)]
 pub enum Ordering {
     Ascending,
@@ -131,19 +135,18 @@ impl Display for Ordering {
     }
 }
 
+/// Specific ways to sort cards.
 #[derive(Debug, Clone, Copy)]
 pub enum Sort {
+    /// Do not sort
     None,
+    /// Sort by how much they match a string
     Fuzzy,
     Alphabet(StringProperties, Ordering),
     Numeric(NumberProperties, Ordering),
 }
 
-#[derive(Deserialize)]
-pub struct QueryParams {
-    pub query: Option<String>,
-}
-
+/// Comparisons to a certain numeric value
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub enum Comparison {
     GreaterThan(usize),
@@ -193,6 +196,7 @@ impl Comparison {
     }
 }
 
+/// Restriction that matches only if a card contains some text
 #[must_use]
 pub fn fuzzy(card: &impl ReadProperties, query: &str) -> bool {
     card.get_description()

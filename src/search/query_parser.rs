@@ -343,6 +343,7 @@ pub enum Properties {
     Keywords,
 }
 
+/// A parser for string search queries.
 /// # Errors
 /// Whenever a query cannot be parsed
 pub fn query_parser(q: &str) -> Result<Query, Errors> {
