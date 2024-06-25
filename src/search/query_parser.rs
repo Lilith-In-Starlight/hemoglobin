@@ -3,10 +3,9 @@ use regex::Regex;
 use crate::{
     cards::properties::{Array, Number, Text},
     numbers::Comparison,
-    QueryMatch,
 };
 
-use super::{Errors, Ordering, Query, QueryRestriction, Sort};
+use super::{Errors, Ordering, Query, QueryMatch, QueryRestriction, Sort};
 
 #[derive(Debug)]
 enum Token {

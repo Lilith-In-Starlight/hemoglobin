@@ -1,4 +1,4 @@
-use crate::QueryMatch;
+use crate::search::QueryMatch;
 
 use super::{Compare, Comparison, MaybeImprecise};
 
@@ -47,7 +47,7 @@ impl<T: Compare> Compare for Option<T> {
 }
 
 impl Compare for MaybeImprecise {
-    fn gt(&self, comparison: usize) -> crate::QueryMatch {
+    fn gt(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (x.assume() > comparison).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -61,7 +61,7 @@ impl Compare for MaybeImprecise {
         }
     }
 
-    fn gt_eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn gt_eq(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (x.assume() >= comparison).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -75,7 +75,7 @@ impl Compare for MaybeImprecise {
         }
     }
 
-    fn lt(&self, comparison: usize) -> crate::QueryMatch {
+    fn lt(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (x.assume() < comparison).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -89,7 +89,7 @@ impl Compare for MaybeImprecise {
         }
     }
 
-    fn lt_eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn lt_eq(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (x.assume() <= comparison).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -103,7 +103,7 @@ impl Compare for MaybeImprecise {
         }
     }
 
-    fn eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn eq(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (comparison == x.assume()).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -117,7 +117,7 @@ impl Compare for MaybeImprecise {
         }
     }
 
-    fn ne(&self, comparison: usize) -> crate::QueryMatch {
+    fn ne(&self, comparison: usize) -> QueryMatch {
         match self {
             MaybeImprecise::Precise(x) => (comparison != x.assume()).into(),
             MaybeImprecise::Imprecise(x) => match x {
@@ -133,27 +133,27 @@ impl Compare for MaybeImprecise {
 }
 
 impl Compare for usize {
-    fn gt(&self, comparison: usize) -> crate::QueryMatch {
+    fn gt(&self, comparison: usize) -> QueryMatch {
         (*self > comparison).into()
     }
 
-    fn gt_eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn gt_eq(&self, comparison: usize) -> QueryMatch {
         (*self >= comparison).into()
     }
 
-    fn lt(&self, comparison: usize) -> crate::QueryMatch {
+    fn lt(&self, comparison: usize) -> QueryMatch {
         (*self < comparison).into()
     }
 
-    fn lt_eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn lt_eq(&self, comparison: usize) -> QueryMatch {
         (*self <= comparison).into()
     }
 
-    fn eq(&self, comparison: usize) -> crate::QueryMatch {
+    fn eq(&self, comparison: usize) -> QueryMatch {
         (*self == comparison).into()
     }
 
-    fn ne(&self, comparison: usize) -> crate::QueryMatch {
+    fn ne(&self, comparison: usize) -> QueryMatch {
         (*self != comparison).into()
     }
 }

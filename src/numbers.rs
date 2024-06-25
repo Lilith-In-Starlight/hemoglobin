@@ -6,7 +6,7 @@ use std::{cmp::Ordering, fmt::Display};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::QueryMatch;
+use crate::search::QueryMatch;
 
 #[derive(Serialize, Debug, PartialEq, Clone)]
 pub enum MaybeImprecise {

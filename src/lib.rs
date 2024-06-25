@@ -6,73 +6,9 @@
 //!
 //! This library contains the search functions used by Hemolymph.
 
-use std::{
-    cmp::{max, min},
-    ops::Not,
-};
-
 pub mod cards;
 pub mod numbers;
 pub mod search;
-
-/// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum QueryMatch {
-    /// Card did not have the requested property.
-    NotHave,
-    /// Card had the requested property and it did not matched the requested value.
-    NotMatch,
-    /// Card had the requested property and it matched the requested value.
-    Match,
-}
-
-impl From<QueryMatch> for bool {
-    fn from(value: QueryMatch) -> Self {
-        matches!(value, QueryMatch::Match)
-    }
-}
-
-impl QueryMatch {
-    /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
-    #[must_use]
-    pub fn or(self, b: Self) -> Self {
-        max(self, b)
-    }
-    /// A ternary XOR which outputs the highest-valued result between `self` and `b`, if they are not equal.
-    /// If both values are `Match` or `NotMatch`, the output will be `NotMatch`.
-    /// If both values are `NotHave`, the output will be `NotHave`.
-    /// If no value is Match and there is a `NotHave`, the output will be `NotHave`.
-    #[must_use]
-    pub fn xor(self, b: Self) -> Self {
-        match (self, b) {
-            (Self::Match, Self::Match) => Self::NotMatch,
-            (Self::NotHave, Self::NotHave) => Self::NotHave,
-            (Self::Match, Self::NotMatch | Self::NotHave)
-            | (Self::NotMatch | Self::NotHave, Self::Match) => Self::Match,
-            (Self::NotMatch | Self::NotHave, Self::NotMatch) | (Self::NotMatch, Self::NotHave) => {
-                Self::NotMatch
-            }
-        }
-    }
-    /// A ternary AND which outputs the lowest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
-    #[must_use]
-    pub fn and(self, b: Self) -> Self {
-        min(self, b)
-    }
-}
-
-impl Not for QueryMatch {
-    type Output = QueryMatch;
-
-    /// Ternary NOT where `NotHave` is considered opposite to itself.
-    fn not(self) -> Self::Output {
-        match self {
-            Self::Match => Self::NotMatch,
-            Self::NotMatch => Self::Match,
-            Self::NotHave => Self::NotHave,
-        }
-    }
-}
 
 #[cfg(test)]
 mod test {
