@@ -39,22 +39,22 @@ pub enum Errors {
 
 /// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum QueryMatch {
+pub enum Ternary {
     /// Card did not have the requested property.
-    NotHave,
+    Void,
     /// Card had the requested property and it did not matched the requested value.
-    NotMatch,
+    False,
     /// Card had the requested property and it matched the requested value.
-    Match,
+    True,
 }
 
-impl From<QueryMatch> for bool {
-    fn from(value: QueryMatch) -> Self {
-        matches!(value, QueryMatch::Match)
+impl From<Ternary> for bool {
+    fn from(value: Ternary) -> Self {
+        matches!(value, Ternary::True)
     }
 }
 
-impl QueryMatch {
+impl Ternary {
     /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
     #[must_use]
     pub fn or(self, b: Self) -> Self {
@@ -67,13 +67,12 @@ impl QueryMatch {
     #[must_use]
     pub fn xor(self, b: Self) -> Self {
         match (self, b) {
-            (Self::Match, Self::Match) => Self::NotMatch,
-            (Self::NotHave, Self::NotHave) => Self::NotHave,
-            (Self::Match, Self::NotMatch | Self::NotHave)
-            | (Self::NotMatch | Self::NotHave, Self::Match) => Self::Match,
-            (Self::NotMatch | Self::NotHave, Self::NotMatch) | (Self::NotMatch, Self::NotHave) => {
-                Self::NotMatch
+            (Self::True, Self::True) => Self::False,
+            (Self::Void, Self::Void) => Self::Void,
+            (Self::True, Self::False | Self::Void) | (Self::False | Self::Void, Self::True) => {
+                Self::True
             }
+            (Self::False | Self::Void, Self::False) | (Self::False, Self::Void) => Self::False,
         }
     }
     /// A ternary AND which outputs the lowest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
@@ -83,25 +82,25 @@ impl QueryMatch {
     }
 }
 
-impl Not for QueryMatch {
-    type Output = QueryMatch;
+impl Not for Ternary {
+    type Output = Ternary;
 
     /// Ternary NOT where `NotHave` is considered opposite to itself.
     fn not(self) -> Self::Output {
         match self {
-            Self::Match => Self::NotMatch,
-            Self::NotMatch => Self::Match,
-            Self::NotHave => Self::NotHave,
+            Self::True => Self::False,
+            Self::False => Self::True,
+            Self::Void => Self::Void,
         }
     }
 }
 
-impl From<bool> for QueryMatch {
+impl From<bool> for Ternary {
     fn from(value: bool) -> Self {
         if value {
-            Self::Match
+            Self::True
         } else {
-            Self::NotMatch
+            Self::False
         }
     }
 }
@@ -259,7 +258,7 @@ where
     let cache = Cache::new(HashMap::new());
     let mut results: Vec<&C> = cards
         .into_iter()
-        .filter(|card| matches_query(card, query, &cards_clone, &cache) == QueryMatch::Match)
+        .filter(|card| matches_query(card, query, &cards_clone, &cache) == Ternary::True)
         .collect();
 
     match &query.sort {
@@ -311,25 +310,25 @@ pub fn matches_query<'a, 'b, C, T, I>(
     query: &Query,
     cards: &I,
     cache: &Cache<&'a T>,
-) -> QueryMatch
+) -> Ternary
 where
     C: Read,
     T: Read + 'a + Clone,
     &'a T: Read,
     I: IntoIterator<Item = &'a T> + Clone,
 {
-    let mut filtered = QueryMatch::Match;
+    let mut filtered = Ternary::True;
     for res in &query.restrictions {
         match res {
             QueryRestriction::Regex(property, regex) => {
                 let matches = {
                     match card.get_text_property(property) {
-                        None => QueryMatch::NotHave,
+                        None => Ternary::Void,
                         Some(value) => {
                             if regex.is_match(&value.to_lowercase()) {
-                                QueryMatch::Match
+                                Ternary::True
                             } else {
-                                QueryMatch::NotMatch
+                                Ternary::False
                             }
                         }
                     }
@@ -352,9 +351,9 @@ where
             }
             QueryRestriction::Fuzzy(x) => {
                 filtered = filtered.and(if fuzzy(card, x) {
-                    QueryMatch::Match
+                    Ternary::True
                 } else {
-                    QueryMatch::NotMatch
+                    Ternary::False
                 });
             }
             QueryRestriction::Comparison(field, comparison) => {
@@ -364,12 +363,12 @@ where
                 let matches = match card.get_text_property(field) {
                     Some(property) => {
                         if property.to_lowercase().contains(&contains.to_lowercase()) {
-                            QueryMatch::Match
+                            Ternary::True
                         } else {
-                            QueryMatch::NotMatch
+                            Ternary::False
                         }
                     }
-                    None => QueryMatch::NotHave,
+                    None => Ternary::Void,
                 };
                 filtered = filtered.and(matches);
             }
@@ -390,10 +389,10 @@ where
             }
             QueryRestriction::LenientNot(queryres) => {
                 filtered = filtered.and(
-                    if matches_query(card, queryres, cards, cache) == QueryMatch::Match {
-                        QueryMatch::NotMatch
+                    if matches_query(card, queryres, cards, cache) == Ternary::True {
+                        Ternary::False
                     } else {
-                        QueryMatch::Match
+                        Ternary::True
                     },
                 );
             }
@@ -401,7 +400,7 @@ where
                 let matches = match_in_vec(card.get_keywords(), |keyword| {
                     if keyword.name == "devours" {
                         if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data {
-                            matches_query(&devoured_id, query, cards, cache) == QueryMatch::Match
+                            matches_query(&devoured_id, query, cards, cache) == Ternary::True
                         } else {
                             false
                         }
@@ -423,8 +422,7 @@ where
                         .clone()
                         .into_iter()
                         .filter(|card| {
-                            matches_query(card, devoured_by, &cloned_cards, cache)
-                                == QueryMatch::Match
+                            matches_query(card, devoured_by, &cloned_cards, cache) == Ternary::True
                         })
                         .collect();
 
@@ -472,9 +470,9 @@ where
                     .iter()
                     .any(|x| x.get_name() == card.get_name())
                 {
-                    filtered = filtered.and(QueryMatch::Match);
+                    filtered = filtered.and(Ternary::True);
                 } else {
-                    filtered = filtered.and(QueryMatch::NotMatch);
+                    filtered = filtered.and(Ternary::False);
                 }
             }
         }
@@ -483,15 +481,15 @@ where
 }
 
 /// Returns whether any part of an optional `vec` fulfills a `cond`ition.
-pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMatch {
+pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> Ternary {
     match vec {
         Some(vec) => {
             if vec.iter().any(cond) {
-                QueryMatch::Match
+                Ternary::True
             } else {
-                QueryMatch::NotMatch
+                Ternary::False
             }
         }
-        None => QueryMatch::NotHave,
+        None => Ternary::Void,
     }
 }
