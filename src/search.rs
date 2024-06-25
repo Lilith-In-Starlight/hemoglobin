@@ -8,13 +8,13 @@ use std::{
 
 use fuzzy::weighted_compare;
 use regex::Regex;
-use serde::Deserialize;
 
 use crate::{
     cards::{
         properties::{Array, Number, Read, Text},
         Keyword, KeywordData,
     },
+    numbers::{Comparison, ImpreciseOrd},
     QueryMatch,
 };
 
@@ -155,56 +155,6 @@ pub enum Sort {
     Numeric(Number, Ordering),
 }
 
-/// Comparisons to a certain numeric value
-#[derive(Deserialize, Debug, Clone, Copy)]
-pub enum Comparison {
-    GreaterThan(usize),
-    GreaterThanOrEqual(usize),
-    LowerThanOrEqual(usize),
-    Equal(usize),
-    LowerThan(usize),
-    NotEqual(usize),
-}
-
-impl Display for Comparison {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::GreaterThan(number) => write!(f, "greater than {number}"),
-            Self::GreaterThanOrEqual(number) => write!(f, "greater than or equal to {number}"),
-            Self::LowerThanOrEqual(number) => write!(f, "lower than than or equal to {number}"),
-            Self::Equal(number) => write!(f, "equal to {number}"),
-            Self::LowerThan(number) => write!(f, "lower than {number}"),
-            Self::NotEqual(number) => write!(f, "other than {number}"),
-        }
-    }
-}
-
-impl Comparison {
-    pub fn compare<T: PartialOrd<usize>>(&self, a: &T) -> bool {
-        match self {
-            Comparison::GreaterThan(x) => a > x,
-            Comparison::Equal(x) => a == x,
-            Comparison::LowerThan(x) => a < x,
-            Comparison::NotEqual(x) => a != x,
-            Comparison::GreaterThanOrEqual(x) => a >= x,
-            Comparison::LowerThanOrEqual(x) => a <= x,
-        }
-    }
-
-    pub fn maybe_compare<T: PartialOrd<usize>>(&self, a: Option<T>) -> QueryMatch {
-        match a {
-            Some(a) => {
-                if self.compare(&a) {
-                    QueryMatch::Match
-                } else {
-                    QueryMatch::NotMatch
-                }
-            }
-            None => QueryMatch::NotHave,
-        }
-    }
-}
-
 /// Restriction that matches only if a card contains some text
 #[must_use]
 pub fn fuzzy(card: &impl Read, query: &str) -> bool {
@@ -256,8 +206,12 @@ where
                 &b.get_text_property(property),
             )
         }),
-        Sort::Numeric(property, Ordering::Ascending) => results
-            .sort_by(|a, b| Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))),
+        Sort::Numeric(property, Ordering::Ascending) => results.sort_by(|a, b| {
+            ImpreciseOrd::imprecise_cmp(
+                &a.get_num_property(property),
+                &b.get_num_property(property),
+            )
+        }),
         Sort::Alphabet(property, Ordering::Descending) => {
             results.sort_by(|a, b| {
                 Ord::cmp(
@@ -268,7 +222,11 @@ where
             });
         }
         Sort::Numeric(property, Ordering::Descending) => results.sort_by(|a, b| {
-            Ord::cmp(&a.get_num_property(property), &b.get_num_property(property)).reverse()
+            ImpreciseOrd::imprecise_cmp(
+                &a.get_num_property(property),
+                &b.get_num_property(property),
+            )
+            .reverse()
         }),
     }
 

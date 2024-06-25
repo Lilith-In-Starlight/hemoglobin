@@ -3,12 +3,14 @@ use crate::cards::properties::Array;
 use crate::cards::properties::Number;
 use crate::cards::properties::Read;
 use crate::cards::properties::Text;
+use crate::numbers::MaybeImprecise;
+use crate::numbers::MaybeVar;
 use rand::prelude::SliceRandom;
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
-use crate::search::{Comparison, QueryRestriction};
+use crate::search::QueryRestriction;
 
 /// Data structure for Cards. All fields are mandatory.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
@@ -23,13 +25,13 @@ pub struct Card {
     /// The card's text, excluding cost, stats and typeline.
     pub description: String,
     /// The card's blood cost.
-    pub cost: usize,
+    pub cost: MaybeVar,
     /// The card's health.
-    pub health: usize,
+    pub health: MaybeVar,
     /// The card's overkill protection.
-    pub defense: usize,
+    pub defense: MaybeVar,
     /// The card's power.
-    pub power: usize,
+    pub power: MaybeVar,
     /// The card's type (as per the game).
     pub r#type: String,
     #[serde(default)]
@@ -76,28 +78,28 @@ impl Display for Card {
 impl Read for Card {
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
-    fn get_num_property(&self, property: &Number) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => Some(self.cost),
+            Number::Cost => Some(self.cost.as_maybe_imprecise()),
             Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.health)
+                    Some(self.health.as_maybe_imprecise())
                 }
             }
             Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.defense)
+                    Some(self.defense.as_maybe_imprecise())
                 }
             }
             Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.power)
+                    Some(self.power.as_maybe_imprecise())
                 }
             }
         }
@@ -155,28 +157,28 @@ impl Read for Card {
 impl Read for &Card {
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
-    fn get_num_property(&self, property: &Number) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => Some(self.cost),
+            Number::Cost => Some(self.cost.as_maybe_imprecise()),
             Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.health)
+                    Some(self.health.as_maybe_imprecise())
                 }
             }
             Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.defense)
+                    Some(self.defense.as_maybe_imprecise())
                 }
             }
             Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.power)
+                    Some(self.power.as_maybe_imprecise())
                 }
             }
         }
@@ -232,28 +234,28 @@ impl Read for &Card {
 }
 
 impl Read for CardId {
-    fn get_num_property(&self, property: &Number) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => self.cost,
+            Number::Cost => self.cost.clone(),
             Number::Health => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.health
+                    self.health.clone()
                 }
             }
             Number::Defense => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.defense
+                    self.defense.clone()
                 }
             }
             Number::Power => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.power
+                    self.power.clone()
                 }
             }
         }
@@ -298,28 +300,28 @@ impl Read for CardId {
 }
 
 impl Read for &CardId {
-    fn get_num_property(&self, property: &Number) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => self.cost,
+            Number::Cost => self.cost.clone(),
             Number::Health => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.health
+                    self.health.clone()
                 }
             }
             Number::Defense => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.defense
+                    self.defense.clone()
                 }
             }
             Number::Power => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
-                    self.power
+                    self.power.clone()
                 }
             }
         }
@@ -369,7 +371,7 @@ pub struct CardId {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cost: Option<usize>,
+    pub cost: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -381,11 +383,11 @@ pub struct CardId {
     #[serde(default)]
     pub kins: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub health: Option<usize>,
+    pub health: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub defense: Option<usize>,
+    pub defense: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub power: Option<usize>,
+    pub power: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub abilities: Option<Vec<String>>,
@@ -446,28 +448,28 @@ impl CardId {
         if let Some(cost) = &self.cost {
             restrictions.push(QueryRestriction::Comparison(
                 Number::Cost,
-                Comparison::Equal(*cost),
+                cost.as_comparison(),
             ));
         }
 
         if let Some(health) = &self.health {
             restrictions.push(QueryRestriction::Comparison(
                 Number::Health,
-                Comparison::Equal(*health),
+                health.as_comparison(),
             ));
         }
 
         if let Some(power) = &self.power {
             restrictions.push(QueryRestriction::Comparison(
                 Number::Power,
-                Comparison::Equal(*power),
+                power.as_comparison(),
             ));
         }
 
         if let Some(defense) = &self.defense {
             restrictions.push(QueryRestriction::Comparison(
                 Number::Defense,
-                Comparison::Equal(*defense),
+                defense.as_comparison(),
             ));
         }
 

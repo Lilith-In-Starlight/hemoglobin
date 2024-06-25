@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
+use crate::numbers::MaybeImprecise;
+
 use super::Keyword;
 
 /// This trait is used in card generics. It is useful when you want a function to accept `CardID`s and not only `Card`s.
 pub trait Read {
     /// Return a card's numeric property, if it has it.
-    fn get_num_property(&self, property: &Number) -> Option<usize>;
+    fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise>;
     /// Return a card's text property, if it has it.
     fn get_text_property(&self, property: &Text) -> Option<&str>;
     /// Return a card's array property, if it has it.

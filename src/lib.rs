@@ -12,6 +12,7 @@ use std::{
 };
 
 pub mod cards;
+pub mod numbers;
 pub mod search;
 
 /// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.

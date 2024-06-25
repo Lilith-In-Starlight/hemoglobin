@@ -2,10 +2,11 @@ use regex::Regex;
 
 use crate::{
     cards::properties::{Array, Number, Text},
+    numbers::Comparison,
     QueryMatch,
 };
 
-use super::{Comparison, Errors, Ordering, Query, QueryRestriction, Sort};
+use super::{Errors, Ordering, Query, QueryRestriction, Sort};
 
 #[derive(Debug)]
 enum Token {
@@ -314,9 +315,7 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
     match str {
         "id" => Ok(Properties::StringProperty(Text::Id)),
         "name" | "n" => Ok(Properties::StringProperty(Text::Name)),
-        "description" | "desc" | "de" => {
-            Ok(Properties::StringProperty(Text::Description))
-        }
+        "description" | "desc" | "de" => Ok(Properties::StringProperty(Text::Description)),
         "type" | "t" => Ok(Properties::StringProperty(Text::Type)),
         "cost" | "c" => Ok(Properties::NumProperty(Number::Cost)),
         "health" | "h" | "hp" => Ok(Properties::NumProperty(Number::Health)),
