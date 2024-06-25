@@ -298,16 +298,6 @@ where
                 });
             }
             QueryRestriction::Comparison(field, comparison) => {
-                if let Some(name) = card.get_name() {
-                    if name == "Crypt Mantis" {
-                        println!(
-                            "{:#?}",
-                            card.get_num_property(field)
-                                .unwrap()
-                                .imprecise_cmp(comparison)
-                        );
-                    }
-                }
                 filtered = filtered.and(comparison.compare(&card.get_num_property(field)));
             }
             QueryRestriction::Contains(field, contains) => {

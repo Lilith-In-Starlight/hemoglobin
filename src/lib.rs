@@ -28,10 +28,7 @@ pub enum QueryMatch {
 
 impl From<QueryMatch> for bool {
     fn from(value: QueryMatch) -> Self {
-        match value {
-            QueryMatch::Match => true,
-            _ => false,
-        }
+        matches!(value, QueryMatch::Match)
     }
 }
 
