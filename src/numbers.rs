@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::search::{query_parser::text_comparison_parser, Ternary};
 
-#[derive(Serialize, Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MaybeImprecise {
     Precise(MaybeVar),
     Imprecise(Comparison),
@@ -24,7 +24,7 @@ impl MaybeImprecise {
     }
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaybeVar {
     Const(usize),
     Var(char),
@@ -109,6 +109,37 @@ impl Comparison {
             Comparison::NotEqual(x) => a.ne(*x),
             Comparison::GreaterThanOrEqual(x) => a.gt_eq(*x),
             Comparison::LowerThanOrEqual(x) => a.lt_eq(*x),
+        }
+    }
+}
+
+impl Serialize for MaybeVar {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            MaybeVar::Const(x) => serializer.serialize_u64((*x).try_into().unwrap()),
+            MaybeVar::Var(x) => serializer.serialize_str(&x.to_string()),
+        }
+    }
+}
+
+impl Serialize for MaybeImprecise {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            MaybeImprecise::Precise(x) => MaybeVar::serialize(x, serializer),
+            MaybeImprecise::Imprecise(x) => match x {
+                Comparison::Equal(x) => serializer.serialize_u64((*x).try_into().unwrap()),
+                Comparison::GreaterThan(x) => serializer.serialize_str(&format!(">{x}")),
+                Comparison::GreaterThanOrEqual(x) => serializer.serialize_str(&format!(">={x}")),
+                Comparison::LowerThan(x) => serializer.serialize_str(&format!("<{x}")),
+                Comparison::LowerThanOrEqual(x) => serializer.serialize_str(&format!("<={x}")),
+                Comparison::NotEqual(x) => serializer.serialize_str(&format!("!={x}")),
+            },
         }
     }
 }

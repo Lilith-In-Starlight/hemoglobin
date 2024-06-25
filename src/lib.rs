@@ -12,7 +12,7 @@ pub mod search;
 
 #[cfg(test)]
 mod test {
-    use std::{fmt::Display, fs};
+    use std::{fmt::Display, fs, path::Path};
 
     use crate::{
         cards::Card,
@@ -40,5 +40,15 @@ mod test {
         // println!("{parsed:#?}");
         let cards = PrintableCards(search(&parsed, cards.iter()));
         println!("{cards}");
+    }
+
+    #[test]
+    fn test_serialize() {
+        let string =
+            fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
+        let cards1: Vec<Card> = serde_json::from_str(&string).expect("Unable to parse JSON");
+        let data = serde_json::to_string_pretty(&cards1).unwrap();
+        let cards2: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
+        assert_eq!(cards1, cards2);
     }
 }

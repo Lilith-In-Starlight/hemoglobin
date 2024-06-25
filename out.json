@@ -1,0 +1,50 @@
+[
+  {
+    "id": "vampire_mantis",
+    "name": "Vampire Mantis",
+    "img": [],
+    "description": "Devours: Insect Kin with Bifurcated Strike\n\nUndead Kin\nBifurcated Strike\n\nWhen Killed: Gain one additional blood",
+    "cost": 3,
+    "health": 3,
+    "defense": 2,
+    "power": 2,
+    "type": "creature",
+    "keywords": [
+      {
+        "name": "devours",
+        "data": {
+          "type": "CardID",
+          "cost": "<2",
+          "keywords": [
+            {
+              "name": "bifurcated strike"
+            }
+          ],
+          "kins": [
+            "insect"
+          ]
+        }
+      },
+      {
+        "name": "bifurcated strike"
+      }
+    ],
+    "kins": [
+      "undead"
+    ],
+    "abilities": [
+      "When Killed: Gain one additional blood."
+    ],
+    "artists": [
+      "Katie Ampersand"
+    ],
+    "set": "The Forest",
+    "legality": {
+      "tournaments": "y",
+      "bloodful": "y",
+      "bloodless": "y"
+    },
+    "other": [],
+    "functions": []
+  }
+]
