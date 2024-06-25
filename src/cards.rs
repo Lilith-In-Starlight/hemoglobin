@@ -1,3 +1,8 @@
+pub mod properties;
+use crate::cards::properties::Array;
+use crate::cards::properties::Number;
+use crate::cards::properties::Read;
+use crate::cards::properties::Text;
 use rand::prelude::SliceRandom;
 use std::{collections::HashMap, fmt::Display};
 
@@ -68,47 +73,27 @@ impl Display for Card {
     }
 }
 
-/// This trait is used in card generics. It is useful when you want a function to accept `CardID`s and not only `Card`s.
-pub trait ReadProperties {
-    /// Return a card's numeric property, if it has it.
-    fn get_num_property(&self, property: &NumberProperties) -> Option<usize>;
-    /// Return a card's text property, if it has it.
-    fn get_str_property(&self, property: &StringProperties) -> Option<&str>;
-    /// Return a card's array property, if it has it.
-    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]>;
-    /// Return a card's keywords, if it has them. It may not have them if it is a `CardID`.
-    fn get_keywords(&self) -> Option<&[Keyword]>;
-    /// Return a card's name, if it has one. It may not have one if it is a `CardID`.
-    fn get_name(&self) -> Option<&str>;
-    /// Return a card's text, if it has one. It may not have one if it is a `CardID`.
-    fn get_description(&self) -> Option<&str>;
-    /// Return a card's type, if it has one. It may not have one if it is a `CardID`.
-    fn get_type(&self) -> Option<&str>;
-    /// Return a card's kins, if it has them. It may not have them if it is a `CardID`.
-    fn get_kins(&self) -> Option<&[String]>;
-}
-
-impl ReadProperties for Card {
+impl Read for Card {
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
-    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<usize> {
         match property {
-            NumberProperties::Cost => Some(self.cost),
-            NumberProperties::Health => {
+            Number::Cost => Some(self.cost),
+            Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
                     Some(self.health)
                 }
             }
-            NumberProperties::Defense => {
+            Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
                     Some(self.defense)
                 }
             }
-            NumberProperties::Power => {
+            Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
@@ -120,22 +105,22 @@ impl ReadProperties for Card {
 
     /// Return a card's text property, if it has it.
     /// Always returns Some.
-    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<&str> {
         Some(match property {
-            StringProperties::Id => &self.id,
-            StringProperties::Name => &self.name,
-            StringProperties::Type => &self.r#type,
-            StringProperties::Description => &self.description,
+            Text::Id => &self.id,
+            Text::Name => &self.name,
+            Text::Type => &self.r#type,
+            Text::Description => &self.description,
         })
     }
 
     /// Return a card's array property, if it has it.
     /// Always returns Some.
-    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+    fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         Some(match property {
-            ArrayProperties::Functions => &self.functions,
-            ArrayProperties::Kins => &self.kins,
-            ArrayProperties::Artists => &self.artists,
+            Array::Functions => &self.functions,
+            Array::Kins => &self.kins,
+            Array::Artists => &self.artists,
         })
     }
 
@@ -167,27 +152,27 @@ impl ReadProperties for Card {
     }
 }
 
-impl ReadProperties for &Card {
+impl Read for &Card {
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
-    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+    fn get_num_property(&self, property: &Number) -> Option<usize> {
         match property {
-            NumberProperties::Cost => Some(self.cost),
-            NumberProperties::Health => {
+            Number::Cost => Some(self.cost),
+            Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
                     Some(self.health)
                 }
             }
-            NumberProperties::Defense => {
+            Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
                     Some(self.defense)
                 }
             }
-            NumberProperties::Power => {
+            Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
@@ -199,22 +184,22 @@ impl ReadProperties for &Card {
 
     /// Return a card's text property, if it has it.
     /// Always returns Some.
-    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<&str> {
         Some(match property {
-            StringProperties::Id => &self.id,
-            StringProperties::Name => &self.name,
-            StringProperties::Type => &self.r#type,
-            StringProperties::Description => &self.description,
+            Text::Id => &self.id,
+            Text::Name => &self.name,
+            Text::Type => &self.r#type,
+            Text::Description => &self.description,
         })
     }
 
     /// Return a card's array property, if it has it.
     /// Always returns Some.
-    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+    fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         Some(match property {
-            ArrayProperties::Functions => &self.functions,
-            ArrayProperties::Kins => &self.kins,
-            ArrayProperties::Artists => &self.artists,
+            Array::Functions => &self.functions,
+            Array::Kins => &self.kins,
+            Array::Artists => &self.artists,
         })
     }
 
@@ -246,25 +231,25 @@ impl ReadProperties for &Card {
     }
 }
 
-impl ReadProperties for CardId {
-    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+impl Read for CardId {
+    fn get_num_property(&self, property: &Number) -> Option<usize> {
         match property {
-            NumberProperties::Cost => self.cost,
-            NumberProperties::Health => {
+            Number::Cost => self.cost,
+            Number::Health => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
                     self.health
                 }
             }
-            NumberProperties::Defense => {
+            Number::Defense => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
                     self.defense
                 }
             }
-            NumberProperties::Power => {
+            Number::Power => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
@@ -274,20 +259,20 @@ impl ReadProperties for CardId {
         }
     }
 
-    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<&str> {
         match property {
-            StringProperties::Id => None,
-            StringProperties::Name => self.name.as_deref(),
-            StringProperties::Type => self.r#type.as_deref(),
-            StringProperties::Description => self.description.as_deref(),
+            Text::Id => None,
+            Text::Name => self.name.as_deref(),
+            Text::Type => self.r#type.as_deref(),
+            Text::Description => self.description.as_deref(),
         }
     }
 
-    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+    fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         match property {
-            ArrayProperties::Functions => self.functions.as_deref(),
-            ArrayProperties::Kins => self.kins.as_deref(),
-            ArrayProperties::Artists => None,
+            Array::Functions => self.functions.as_deref(),
+            Array::Kins => self.kins.as_deref(),
+            Array::Artists => None,
         }
     }
 
@@ -312,25 +297,25 @@ impl ReadProperties for CardId {
     }
 }
 
-impl ReadProperties for &CardId {
-    fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
+impl Read for &CardId {
+    fn get_num_property(&self, property: &Number) -> Option<usize> {
         match property {
-            NumberProperties::Cost => self.cost,
-            NumberProperties::Health => {
+            Number::Cost => self.cost,
+            Number::Health => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
                     self.health
                 }
             }
-            NumberProperties::Defense => {
+            Number::Defense => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
                     self.defense
                 }
             }
-            NumberProperties::Power => {
+            Number::Power => {
                 if self.r#type.as_ref().is_some_and(|x| x.contains("command")) {
                     None
                 } else {
@@ -340,20 +325,20 @@ impl ReadProperties for &CardId {
         }
     }
 
-    fn get_str_property(&self, property: &StringProperties) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<&str> {
         match property {
-            StringProperties::Id => None,
-            StringProperties::Name => self.name.as_deref(),
-            StringProperties::Type => self.r#type.as_deref(),
-            StringProperties::Description => self.description.as_deref(),
+            Text::Id => None,
+            Text::Name => self.name.as_deref(),
+            Text::Type => self.r#type.as_deref(),
+            Text::Description => self.description.as_deref(),
         }
     }
 
-    fn get_vec_property(&self, property: &ArrayProperties) -> Option<&[String]> {
+    fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         match property {
-            ArrayProperties::Functions => self.functions.as_deref(),
-            ArrayProperties::Kins => self.kins.as_deref(),
-            ArrayProperties::Artists => None,
+            Array::Functions => self.functions.as_deref(),
+            Array::Kins => self.kins.as_deref(),
+            Array::Artists => None,
         }
     }
 
@@ -425,64 +410,6 @@ pub struct Keyword {
     pub data: Option<KeywordData>,
 }
 
-/// A card's numerical properties
-#[derive(Debug, Clone, Copy)]
-pub enum NumberProperties {
-    Cost,
-    Health,
-    Power,
-    Defense,
-}
-
-impl Display for NumberProperties {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Cost => write!(f, "Cost"),
-            Self::Health => write!(f, "Health"),
-            Self::Power => write!(f, "Power"),
-            Self::Defense => write!(f, "Defense"),
-        }
-    }
-}
-
-/// A card's array properties
-#[derive(Debug, Clone, Copy)]
-pub enum ArrayProperties {
-    Functions,
-    Kins,
-    Artists,
-}
-
-impl Display for ArrayProperties {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Functions => write!(f, "Functions"),
-            Self::Kins => write!(f, "Kins"),
-            Self::Artists => write!(f, "Artists"),
-        }
-    }
-}
-
-/// A card's text properties
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub enum StringProperties {
-    Id,
-    Name,
-    Type,
-    Description,
-}
-
-impl Display for StringProperties {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StringProperties::Id => write!(f, "ID"),
-            StringProperties::Name => write!(f, "Name"),
-            StringProperties::Type => write!(f, "Type"),
-            StringProperties::Description => write!(f, "Description"),
-        }
-    }
-}
-
 impl Card {
     /// Obtains a randomly selected image name from the `Card`'s img field. If it can't, it gets an image name based on its name.
     #[must_use]
@@ -501,15 +428,12 @@ impl CardId {
         let mut restrictions = vec![];
 
         if let Some(name) = &self.name {
-            restrictions.push(QueryRestriction::Contains(
-                StringProperties::Name,
-                name.clone(),
-            ));
+            restrictions.push(QueryRestriction::Contains(Text::Name, name.clone()));
         }
 
         if let Some(kins) = &self.kins {
             for kin in kins {
-                restrictions.push(QueryRestriction::Has(ArrayProperties::Kins, kin.clone()));
+                restrictions.push(QueryRestriction::Has(Array::Kins, kin.clone()));
             }
         }
 
@@ -521,28 +445,28 @@ impl CardId {
 
         if let Some(cost) = &self.cost {
             restrictions.push(QueryRestriction::Comparison(
-                NumberProperties::Cost,
+                Number::Cost,
                 Comparison::Equal(*cost),
             ));
         }
 
         if let Some(health) = &self.health {
             restrictions.push(QueryRestriction::Comparison(
-                NumberProperties::Health,
+                Number::Health,
                 Comparison::Equal(*health),
             ));
         }
 
         if let Some(power) = &self.power {
             restrictions.push(QueryRestriction::Comparison(
-                NumberProperties::Power,
+                Number::Power,
                 Comparison::Equal(*power),
             ));
         }
 
         if let Some(defense) = &self.defense {
             restrictions.push(QueryRestriction::Comparison(
-                NumberProperties::Defense,
+                Number::Defense,
                 Comparison::Equal(*defense),
             ));
         }

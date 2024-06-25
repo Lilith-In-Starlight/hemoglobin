@@ -1,7 +1,7 @@
 use regex::Regex;
 
 use crate::{
-    cards::{ArrayProperties, NumberProperties, StringProperties},
+    cards::properties::{Array, Number, Text},
     QueryMatch,
 };
 
@@ -312,22 +312,20 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
 /// When `str` is not a valid property query name
 pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
     match str {
-        "id" => Ok(Properties::StringProperty(StringProperties::Id)),
-        "name" | "n" => Ok(Properties::StringProperty(StringProperties::Name)),
+        "id" => Ok(Properties::StringProperty(Text::Id)),
+        "name" | "n" => Ok(Properties::StringProperty(Text::Name)),
         "description" | "desc" | "de" => {
-            Ok(Properties::StringProperty(StringProperties::Description))
+            Ok(Properties::StringProperty(Text::Description))
         }
-        "type" | "t" => Ok(Properties::StringProperty(StringProperties::Type)),
-        "cost" | "c" => Ok(Properties::NumProperty(NumberProperties::Cost)),
-        "health" | "h" | "hp" => Ok(Properties::NumProperty(NumberProperties::Health)),
+        "type" | "t" => Ok(Properties::StringProperty(Text::Type)),
+        "cost" | "c" => Ok(Properties::NumProperty(Number::Cost)),
+        "health" | "h" | "hp" => Ok(Properties::NumProperty(Number::Health)),
         "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
-            Ok(Properties::NumProperty(NumberProperties::Power))
+            Ok(Properties::NumProperty(Number::Power))
         }
-        "defense" | "def" | "d" => Ok(Properties::NumProperty(NumberProperties::Defense)),
-        "kin" | "k" => Ok(Properties::ArrayProperty(ArrayProperties::Kins)),
-        "function" | "fun" | "fn" | "f" => {
-            Ok(Properties::ArrayProperty(ArrayProperties::Functions))
-        }
+        "defense" | "def" | "d" => Ok(Properties::NumProperty(Number::Defense)),
+        "kin" | "k" => Ok(Properties::ArrayProperty(Array::Kins)),
+        "function" | "fun" | "fn" | "f" => Ok(Properties::ArrayProperty(Array::Functions)),
         "keyword" | "kw" => Ok(Properties::Keywords),
         "sort" | "so" => Ok(Properties::Sort(Ordering::Ascending)),
         "sortd" | "sod" => Ok(Properties::Sort(Ordering::Descending)),
@@ -336,9 +334,9 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
 }
 
 pub enum Properties {
-    NumProperty(NumberProperties),
-    StringProperty(StringProperties),
-    ArrayProperty(ArrayProperties),
+    NumProperty(Number),
+    StringProperty(Text),
+    ArrayProperty(Array),
     Sort(Ordering),
     Keywords,
 }

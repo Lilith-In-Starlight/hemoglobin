@@ -13,7 +13,7 @@ use std::{
     ops::Not,
 };
 
-use cards::{Keyword, KeywordData, ReadProperties};
+use cards::{properties::Read, Keyword, KeywordData};
 use rust_fuzzy_search::fuzzy_compare;
 use search::{Query, QueryRestriction, Sort};
 
@@ -86,9 +86,9 @@ fn apply_restriction<'a, 'b, C, T, I>(
     cache: &Cache<&'a T>,
 ) -> QueryMatch
 where
-    C: ReadProperties,
-    T: ReadProperties + 'a + Clone,
-    &'a T: ReadProperties,
+    C: Read,
+    T: Read + 'a + Clone,
+    &'a T: Read,
     I: IntoIterator<Item = &'a T> + Clone,
 {
     let mut filtered = QueryMatch::Match;
@@ -96,7 +96,7 @@ where
         match res {
             QueryRestriction::Regex(property, regex) => {
                 let matches = {
-                    match card.get_str_property(property) {
+                    match card.get_text_property(property) {
                         None => QueryMatch::NotHave,
                         Some(value) => {
                             if regex.is_match(&value.to_lowercase()) {
@@ -134,7 +134,7 @@ where
                 filtered = filtered.and(comparison.maybe_compare(card.get_num_property(field)));
             }
             QueryRestriction::Contains(field, contains) => {
-                let matches = match card.get_str_property(field) {
+                let matches = match card.get_text_property(field) {
                     Some(property) => {
                         if property.to_lowercase().contains(&contains.to_lowercase()) {
                             QueryMatch::Match
@@ -274,9 +274,9 @@ pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> QueryMat
 #[must_use]
 pub fn apply_restrictions<'a, 'b, C, I>(query: &Query, cards: I) -> Vec<&'a C>
 where
-    C: ReadProperties + Clone + 'a,
+    C: Read + Clone + 'a,
     I: IntoIterator<Item = &'a C> + Clone + 'b,
-    &'a C: ReadProperties,
+    &'a C: Read,
 {
     let cards_clone = cards.clone();
     let cache = Cache::new(HashMap::new());
@@ -293,13 +293,21 @@ where
                 .unwrap_or(std::cmp::Ordering::Equal)
         }),
         Sort::Fuzzy => results.sort_by(|a, b| Ord::cmp(&a.get_name(), &b.get_name())),
-        Sort::Alphabet(property, search::Ordering::Ascending) => results
-            .sort_by(|a, b| Ord::cmp(&a.get_str_property(property), &b.get_str_property(property))),
+        Sort::Alphabet(property, search::Ordering::Ascending) => results.sort_by(|a, b| {
+            Ord::cmp(
+                &a.get_text_property(property),
+                &b.get_text_property(property),
+            )
+        }),
         Sort::Numeric(property, search::Ordering::Ascending) => results
             .sort_by(|a, b| Ord::cmp(&a.get_num_property(property), &b.get_num_property(property))),
         Sort::Alphabet(property, search::Ordering::Descending) => {
             results.sort_by(|a, b| {
-                Ord::cmp(&a.get_str_property(property), &b.get_str_property(property)).reverse()
+                Ord::cmp(
+                    &a.get_text_property(property),
+                    &b.get_text_property(property),
+                )
+                .reverse()
             });
         }
         Sort::Numeric(property, search::Ordering::Descending) => results.sort_by(|a, b| {
@@ -313,7 +321,7 @@ where
 /// Compares a card's text with a given string and outputs a value for how much it matched the text, prioritizing in this order: Names, types, descriptions, kins, keywords.
 /// Notably, since a card's keywords are also in its description, keywords are ranked slightly higher than they are supposed to. This is not a huge deal, but it is a thing that might be good to be aware of.
 #[must_use]
-pub fn weighted_compare(a: &impl ReadProperties, b: &str) -> f32 {
+pub fn weighted_compare(a: &impl Read, b: &str) -> f32 {
     let mut result = 0.0;
 
     if let Some(name) = a.get_name() {

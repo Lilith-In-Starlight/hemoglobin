@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::Deserialize;
 
 use crate::{
-    cards::{ArrayProperties, NumberProperties, ReadProperties, StringProperties},
+    cards::properties::{Array, Number, Read, Text},
     QueryMatch,
 };
 
@@ -85,7 +85,7 @@ impl Display for QueryRestriction {
                 write!(f, "whose {property} matches /{regex}/")
             }
             QueryRestriction::Has(property, text) => match property {
-                ArrayProperties::Functions => write!(f, "which can be used to \"{text}\""),
+                Array::Functions => write!(f, "which can be used to \"{text}\""),
                 property => write!(f, "whose {property} have \"{text}\" among them"),
             },
             QueryRestriction::HasKw(keyword) => write!(f, "with a \"{keyword}\" keyword"),
@@ -107,10 +107,10 @@ pub enum QueryRestriction {
     Fuzzy(String),
     Devours(Query),
     DevouredBy(Query),
-    Comparison(NumberProperties, Comparison),
-    Contains(StringProperties, String),
-    Regex(StringProperties, Regex),
-    Has(ArrayProperties, String),
+    Comparison(Number, Comparison),
+    Contains(Text, String),
+    Regex(Text, Regex),
+    Has(Array, String),
     HasKw(String),
     Not(Query),
     LenientNot(Query),
@@ -142,8 +142,8 @@ pub enum Sort {
     None,
     /// Sort by how much they match a string
     Fuzzy,
-    Alphabet(StringProperties, Ordering),
-    Numeric(NumberProperties, Ordering),
+    Alphabet(Text, Ordering),
+    Numeric(Number, Ordering),
 }
 
 /// Comparisons to a certain numeric value
@@ -198,7 +198,7 @@ impl Comparison {
 
 /// Restriction that matches only if a card contains some text
 #[must_use]
-pub fn fuzzy(card: &impl ReadProperties, query: &str) -> bool {
+pub fn fuzzy(card: &impl Read, query: &str) -> bool {
     card.get_description()
         .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
         || card
