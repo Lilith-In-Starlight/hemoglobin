@@ -16,7 +16,7 @@ pub mod numbers;
 pub mod search;
 
 /// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryMatch {
     /// Card did not have the requested property.
     NotHave,
@@ -24,6 +24,15 @@ pub enum QueryMatch {
     NotMatch,
     /// Card had the requested property and it matched the requested value.
     Match,
+}
+
+impl From<QueryMatch> for bool {
+    fn from(value: QueryMatch) -> Self {
+        match value {
+            QueryMatch::Match => true,
+            _ => false,
+        }
+    }
 }
 
 impl QueryMatch {
@@ -91,10 +100,9 @@ mod test {
 
     #[test]
     fn test_search() {
-        let data =
-            fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
+        let data = fs::read_to_string("./cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("n:infected OR dby:(n:\"infected fly\")").unwrap();
+        let parsed = query_parser::query_parser("dev:(c=1) so:c").unwrap();
         println!("{parsed}");
         // println!("{parsed:#?}");
         let cards = PrintableCards(search(&parsed, cards.iter()));

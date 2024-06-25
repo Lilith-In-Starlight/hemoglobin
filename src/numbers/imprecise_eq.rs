@@ -40,7 +40,7 @@ impl ImpreciseEq<Self> for Comparison {
 
 impl ImpreciseEq<usize> for Comparison {
     fn imprecise_eq(&self, other: &usize) -> bool {
-        self.compare(other)
+        self.compare(other).into()
     }
 }
 
@@ -72,7 +72,7 @@ impl ImpreciseEq<MaybeVar> for usize {
 
 impl ImpreciseEq<MaybeVar> for Comparison {
     fn imprecise_eq(&self, other: &MaybeVar) -> bool {
-        self.compare(&other.assume())
+        self.compare(&other.assume()).into()
     }
 }
 

@@ -1,0 +1,1446 @@
+[
+    {
+        "id": "vampire_mantis",
+        "name": "Vampire Mantis",
+        "description": "Devours: Insect Kin with Bifurcated Strike\n\nUndead Kin\nBifurcated Strike\n\nWhen Killed: Gain one additional blood",
+        "cost": 3,
+        "type": "creature",
+        "health": 3,
+        "defense": 2,
+        "power": 2,
+        "kins": ["undead"],
+        "keywords": [
+            {
+                "name": "devours",
+                "data": {
+                    "type": "CardID",
+                    "kins": ["insect"],
+                    "keywords": [
+                        {
+                            "name": "bifurcated strike"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "bifurcated strike"
+            }
+        ],
+        "abilities": ["When Killed: Gain one additional blood."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [], 
+        "functions": []
+    },
+    {
+        "id": "mosquito",
+        "name": "Mosquito",
+        "description": "Insect Kin\n\nWhen this creature attacks and is blocked, gain one blood.",
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 1,
+        "power": 1,
+        "kins": ["insect"],
+        "abilities": ["When this creature attacks and is blocked, gain one blood."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "blue_queen",
+        "name": "Blue Queen",
+        "description": "Pay 1 blood for each creature that you wish to sacrifice. Sacrifice those creatures.",
+        "type": "command",
+        "cost": 0,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Pay 1 blood for each creature that you wish to sacrifice. Sacrifice those creatures."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["sacrifice creatures"]
+    },
+    {
+        "id": "ant_queen",
+        "name": "Ant Queen",
+        "description": "Ant Kin\nKin Call",
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 2,
+        "power": 2,
+        "kins": ["ant", "insect"],
+        "keywords": [{"name": "kin call"}],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["call creatures"]
+    },
+    {
+        "id": "blood_flask",
+        "name": "Blood Flask",
+        "description": "",
+        "type": "blood flask",
+        "cost": 0,
+        "health": 1,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "keywords": [],
+        "abilities": [""],
+        "artists": ["Katie Ampersand"],
+        "set": "None",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "timestopper",
+        "name": "Timestopper",
+        "description": "All friendly creatures attack without ending your turn.",
+        "type": "command",
+        "cost": 8,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["All friendly creatures attack without ending your turn."],
+        "artists": ["Katie Ampersand"],
+        "set": "Otherworldly Mysteries",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack creature"]
+    },
+    {
+        "id": "blight",
+        "name": "Blight",
+        "description": "Blight Kin\nKin Call\nUnlimited",
+        "img": ["Blight", "Blight2"],
+        "keywords": [{"name": "kin call"}, {"name": "unlimited"}],
+        "type": "creature",
+        "cost": 2,
+        "health": 1,
+        "defense": 0,
+        "power": 1,
+        "kins": ["blight", "machine"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["fill board"]
+    },
+    {
+        "id": "blightkin_child",
+        "name": "Blightkin Child",
+        "description": "When Played: Enemy \"Blight\" creatures facing empty spaces change sides",
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["convert creature"]
+    },
+    {
+        "id": "broken_robot",
+        "name": "Broken Robot",
+        "description": "",
+        "type": "creature",
+        "cost": 1,
+        "health": 2,
+        "defense": 1,
+        "power": 0,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["obstruct lane"]
+    },
+    {
+        "id": "bug_singer",
+        "name": "Bug Singer",
+        "description": "Insect Kin\n\nWhen Played: Friendly Insect creatures move one space closer to this creature",
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 0,
+        "power": 1,
+        "kins": ["insect"],
+        "abilities": ["When Played: Friendly Insect creatures move one space closer to this creature"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["move creature"]
+    },
+    {
+        "id": "child",
+        "name": "Child",
+        "description": "Whenever a friendly creature enters, this creature moves as close to it as possible.",
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 1,
+        "power": 2,
+        "kins": [],
+        "abilities": ["Whenever a friendly creature enters, this creature moves as close to it as possible."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["move creature"]
+    },
+    {
+        "id": "crow",
+        "name": "Crow",
+        "description": "Flying",
+        "keywords": [{"name": "flying"}],
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 2,
+        "power": 1,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "cult_initiate",
+        "name": "Cult Initiate",
+        "description": "Does not give blood when killed",
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["Does not give blood when killed"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "deranged_researcher",
+        "img": ["DerangedResearcher", "DerangedResearcher2"],
+        "name": "Deranged Researcher",
+        "description": "When Played: Shuffle a \"Grand Design\" vestige into your deck",
+        "type": "creature",
+        "cost": 4,
+        "health": 3,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["When Played: Shuffle a \"Grand Design\" vestige into your deck"],
+        "artists": ["Katie Ampersand"],
+        "set": "Normality",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["spawn vestige", "shuffle deck", "add card"]
+    },
+    {
+        "id": "dog",
+        "name": "Dog",
+        "description": "Whenever your opponent summons a creature in an unopposed space, move this creature to the space opposite to it.",
+        "type": "creature",
+        "cost": 1,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["Whenever your opponent summons a creature in an unopposed space, move this creature to the space opposite to it."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "dog_treats",
+        "name": "Dog Treats",
+        "description": "Search your deck for a creature card of blood cost 1.\n\nPut it into play.\n\nShuffle.",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Search your deck for a creature card of blood cost 1.\n\nPut it into play.\n\nShuffle."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["search deck", "summon creature", "shuffle deck"]
+    },
+    {
+        "id": "exiled_featherman",
+        "name": "Exiled Featherman",
+        "description": "At the beginning of your turn, pick one friendly card to become Flying until the end of your turn.",
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["At the beginning of your turn, pick one friendly card to become Flying until the end of your turn."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["modify creature", "give flying"]
+    },
+    {
+        "id": "17",
+        "name": "Follower Of Nä",
+        "description": "Evolves from: Cult Initiate\nCult Of Nä Kin\n\nCan be Called without evolving.\n\nSpend 2 blood X times to increase next attack by X.",
+        "keywords": [
+            {
+                "name": "devours",
+                "data": {
+                    "type": "CardID",
+                    "name": "cult initiate"
+                }
+            }
+        ],
+        "type": "creature",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Can be Called without evolving.", "Spend 2 blood X times to increase next attack by X."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["increase attack"]
+    },
+    {
+        "id": "giraffe",
+        "name": "Giraffe",
+        "description": "Whenever a friendly creature enters the board, draw a card.",
+        "type": "creature",
+        "cost": 4,
+        "health": 4,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Whenever a friendly creature enters the board, draw a card."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card"]
+    },
+    {
+        "id": "grand_design",
+        "name": "Grand Design",
+        "description": "You win the game.",
+        "type": "command vestige",
+        "cost": 6,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["You win the game."],
+        "artists": ["Katie Ampersand"],
+        "set": "Normality",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["win the game"]
+    },
+    {
+        "id": "green_queen",
+        "name": "Green Queen",
+        "description": "Draw 2 cards.",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Draw 2 cards"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card"]
+    },
+    {
+        "id": "infected_fly",
+        "name": "Infected Fly",
+        "description": "Devours: 1 Cost Insect Kin\n\nBifurcated Strike\nInsect Kin\n\nWhen this creature attacks and is blocked, gain one blood.",
+        "keywords": [
+            {
+                "name": "devours",
+                "data": {
+                    "type": "CardID",
+                    "cost": 1,
+                    "kins": ["insect"]
+                }
+            },
+            {
+                "name": "bifurcated strike"
+            }
+        ],
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": ["insect"],
+        "abilities": ["When this creature attacks and is blocked, gain one blood"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "kitchen_dagger",
+        "name": "Kitchen Dagger",
+        "description": "Discard 3 cards to gain 6 blood.",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Discard a card to gain 3 blood."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood", "discard card"]
+    },
+    {
+        "id": "22",
+        "name": "Leader Of The Cult Of Nä",
+        "description": "Evolves From: Follower Of Nä\nCult Of Nä Kin\nKin Strength\nKin Call",
+        "keywords": [
+            {
+                "name": "devours",
+                "data": {
+                    "type": "CardID",
+                    "name": "follower of nä"
+                }
+            },
+            {
+                "name": "kin strength"
+            },
+            {
+                "name": "kin call"
+            }
+        ],
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 2,
+        "power": 0,
+        "kins": ["cult of nä"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "leech",
+        "name": "Leech",
+        "description": "When killing a creature, gain the amount of blood the opponent would gain. They do not gain it.\n\nWhen killed, your opponent gains 1 blood.",
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["When killing a creature, gain the amount of blood the opponent would gain. They do not gain it.", "When killed, your opponent gains 1 blood."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["starve opponent", "gain blood"]
+    },
+    {
+        "id": "lightning_strike",
+        "name": "Lightning Strike",
+        "description": "Explosive",
+        "keywords": [{"name": "explosive"}],
+        "type": "creature",
+        "cost": 3,
+        "health": 4,
+        "defense": 0,
+        "power": 3,
+        "kins": [],
+        "abilities": ["After this creature attacks, it is destroyed."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "lost_man_left",
+        "name": "Lost Man",
+        "img": ["LML"],
+        "description": "Wandering Left",
+        "keywords": [{"name": "wandering left"}],
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 0,
+        "power": 1,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "lost_man_right",
+        "name": "Lost Man",
+        "img": ["LMR"],
+        "description": "Wandering Right",
+        "keywords": [{"name": "wandering right"}],
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 0,
+        "power": 1,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "the_long_quiet",
+        "name": "The Long Quiet",
+        "description": "Legendary",
+        "keywords": [{"name": "legendary"}],
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 2,
+        "power": 0,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["negate legendary"]
+    },
+    {
+        "id": "mantis",
+        "name": "Mantis",
+        "description": "Insect Kin\nBifurcated Strike",
+        "keywords": [{"name": "bifurcated strike"}],
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": ["insect"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "mechanic",
+        "name": "Mechanic",
+        "description": "When Played:\nPlace a \"Broken Robot\" from your hand in the space opposing this card for free.",
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": [],
+        "abilities": ["When Played:\nPlace a \"Broken Robot\" from your hand in the space opposing this card for free."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["clutter opponent space"]
+    },
+    {
+        "id": "red_queen",
+        "name": "Red Queen",
+        "description": "Your opponent skips one turn. End your turn and skip the attack phase.",
+        "type": "command",
+        "cost": 1,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Your opponent skips one turn.", "End your turn and skip the attack phase."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["skip opponent turn", "end turn", "skip attack phase"]
+    },
+    {
+        "id": "sign",
+        "name": "Sign",
+        "description": "Spell\n\nWhen Played: Move any other friendly creature to an empty space to its left or right.",
+        "keywords": [{"name": "spell"}],
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["When Played: Move any other friendly creature to an empty space to its left or right"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["move creature"]
+    },
+    {
+        "id": "tall_figure",
+        "name": "Tall Figure",
+        "description": "Flying Defense",
+        "keywords": [{"name": "flying defense"}],
+        "type": "creature",
+        "cost": 1,
+        "health": 2,
+        "defense": 2,
+        "power": 1,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "time_screamer",
+        "name": "Time Screamer",
+        "description": "Legendary\n\nWhile On Board:\n\nIf an attack would cause player damage, it does not.",
+        "keywords": [{"name": "legendary"}],
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 2,
+        "power": 2,
+        "kins": [],
+        "abilities": ["While On Board:\n\nIf an attack would cause player damage, it does not."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["negate player damage", "change rules"]
+    },
+    {
+        "id": "winged_ant",
+        "name": "Winged Ant",
+        "description": "Ant Kin\nFlying",
+        "keywords": [{"name": "flying"}],
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 1,
+        "kins": ["ant", "insect"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "worker_ant",
+        "name": "Worker Ant",
+        "description": "Ant Kin\nKin Strength",
+        "keywords": [{"name": "kin strength"}],
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 1,
+        "power": 0,
+        "kins": ["ant", "insect"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "black_queen",
+        "name": "Black Queen",
+        "description": "Draw 2 cards from your opponent's creature deck.",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Draw 2 cards from your opponent's creature deck."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card"]
+    },
+    {
+        "id": "crypt_mantis",
+        "name": "Crypt Mantis",
+        "description": "Insect Kin\nBifurcated Strike\n\nThis creature's strength is equal to half the amount of unique cards in your discard pile, rounded up.",
+        "type": "creature",
+        "cost": "X",
+        "health": 2,
+        "defense": 2,
+        "power": 0,
+        "kins": ["insect"],
+        "abilities": ["This creature's strength is equal to half the amount of unique cards in your discard pile, rounded up."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "sniper_snake",
+        "name": "Sniper Snake",
+        "description": "Reptile Kin\n\nPay 1 blood to deal 1 damage to any creature.",
+        "type": "creature",
+        "cost": 2,
+        "health": 2,
+        "defense": 1,
+        "power": 0,
+        "kins": ["reptile"],
+        "abilities": ["Pay 1 blood to deal 1 damage to any creature."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack creature"]
+    },
+    {
+        "id": "wasp",
+        "name": "Wasp",
+        "description": "Insect Kin\nFlying Defense\nPiercing",
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 1,
+        "power": 2,
+        "kins": ["insect"],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "spider",
+        "name": "Spider",
+        "description": "When this creature attacks an Ensnared creature, attack it once more.",
+        "type": "creature",
+        "cost": 3,
+        "health": 2,
+        "defense": 2,
+        "power": 2,
+        "kins": [],
+        "abilities": ["When this creature attacks an Ensnared creature, attack it once more."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack creature"]
+    },
+    {
+        "id": "spider_web",
+        "name": "Spider Web",
+        "description": "Evolves From: Spider\nWhen Attacked: The attacking creature becomes Ensnared.\n\nWhen Killed: Summons a spider in the space left by this card.",
+        "type": "creature",
+        "cost": 3,
+        "health": 1,
+        "defense": 3,
+        "power": 0,
+        "kins": [],
+        "abilities": ["When Attacked: The attacking creature becomes Ensnared.", "When Killed: Summons a spider in the space left by this card."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["ensnare", "summon creature"]
+    },
+    {
+        "id": "pulsating_lens",
+        "name": "Pulsating Lens",
+        "description": "Sorcery Kin\n\nDraw a creature from your deck.",
+        "type": "command",
+        "cost": 1,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": ["sorcery"],
+        "abilities": ["Draw a creature from your deck"],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card"]
+    },
+    {
+        "id": "spellbook_of_luna",
+        "name": "Spellbook Of Luna",
+        "description": "Search your deck for up to 2 sorcery commands. Reveal them and put them in your hand. Shuffle.",
+        "type": "command",
+        "cost": 3,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Search your deck for up to 2 sorcery commands.", "Reveal them and put them in your hand.", "Shuffle."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["search deck", "draw card", "shuffle"]
+    },
+    {
+        "id": "misdrawn_starchart",
+        "name": "Misdrawn Starchart",
+        "description": "Deal 2 damage to an unfriendly creature. Then, draw a card.",
+        "type": "command",
+        "cost": 3,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": ["sorcery"],
+        "abilities": ["Deal 2 damage to an unfriendly creature. Then, draw a card."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack creature", "draw card"]
+    },
+    {
+        "id": "horrific_lurker_of_the_depths",
+        "name": "Horrific Lurker Of The Depths",
+        "description": "Sorcery Kin\n\nWhenever you execute a sorcery command, draw a card.",
+        "type": "creature",
+        "cost": 5,
+        "health": 5,
+        "defense": 1,
+        "power": 1,
+        "kins": ["sorcery"],
+        "abilities": ["Whenever you execute a sorcery command, draw a card."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack creature", "draw card"]
+    },
+    {
+        "id": "shattered_flask",
+        "name": "Shattered Flask",
+        "description": "",
+        "type": "creature",
+        "cost": 0,
+        "health": 1,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "bee",
+        "name": "Bee",
+        "description": "Bee Kin\nKin Strength\n\nThis creature is destroyed after it attacks.",
+        "type": "creature",
+        "cost": 1,
+        "health": 1,
+        "defense": 0,
+        "power": 0,
+        "kins": ["bee", "insect"],
+        "abilities": ["This creature is destroyed after it attacks."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "royal_scientist",
+        "name": "Royal Scientist",
+        "description": "Blue Kingdom Kin\n\nAs long as you control another Blue Kingdom creature, your opponent can only play one card each turn. They may sacrifice X creatures to play X additional cards.",
+        "type": "creature",
+        "cost": 5,
+        "health": 2,
+        "defense": 2,
+        "power": 2,
+        "kins": ["blue kingdom"],
+        "abilities": ["As long as you control another Blue Kingdom creature, your opponent can only play one card each turn. They may sacrifice X creatures to play X additional cards."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "blue_pawn",
+        "name": "Blue Pawn",
+        "description": "Blue Kingdom Kin\n\nWhen another friendly Blue Kingdom creature enters the board, this creature cannot be attacked next turn.",
+        "type": "creature",
+        "cost": 2,
+        "health": 1,
+        "defense": 1,
+        "power": 1,
+        "kins": ["blue kingdom"],
+        "abilities": ["When another friendly Blue Kingdom creature enters the board, this creature cannot be attacked next turn."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["attack twice"]
+    },
+    {
+        "id": "blue_rook",
+        "name": "Blue Rook",
+        "description": "Blue Kingdom Kin\n\nDuring your setup phase, you may move this card to any space to its left or right, if the path to it is unblocked.",
+        "type": "creature",
+        "cost": 3,
+        "health": 3,
+        "defense": 2,
+        "power": 2,
+        "kins": ["blue kingdom"],
+        "abilities": ["During your setup phase, you may move this card to any space to its left or right, if the path to it is unblocked."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["move"]
+    },
+    {
+        "id": "royal_engineer",
+        "name": "Royal Engineer",
+        "description": "Blue Kingdom Kin\nKin Call x3\n\nWhen this card attacks, choose which opponent space to attack. If that space has a creature, it loses its text for the next turn.",
+        "type": "creature",
+        "cost": 9,
+        "health": 3,
+        "defense": 1,
+        "power": 3,
+        "kins": ["blue kingdom"],
+        "abilities": ["When this card attacks, choose which opponent space to attack. If that space has a creature, it loses its text for the next turn."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Kingdoms",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["deal damage", "remove opponent creature text"]
+    },
+    {
+        "id": "nostalgia",
+        "name": "Nostalgia",
+        "description": "Re-summon a creature.\n\nReturn it to the state it was in before being re-summoned.",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Re-summon a creature. Return it to the state it was in before being re-summoned."],
+        "artists": ["Katie Ampersand"],
+        "set": "Ampersandia",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["re-summon creature"]
+    },
+    {
+        "id": "blood_druid",
+        "name": "Blood Druid",
+        "description": "When this creature is played, name a kin.\n\n Whenever a creature of that kin dies, gain 1 blood.",
+        "type": "creature",
+        "cost": 5,
+        "health": 4,
+        "defense": 0,
+        "power": 1,
+        "kins": [],
+        "abilities": ["Re-summon a creature. Return it to the state it was in before being re-summoned."],
+        "artists": ["Katie Ampersand"],
+        "set": "Ampersandia",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "flash_of_insight",
+        "name": "Flash Of Insight",
+        "description": "Draw three cards.",
+        "type": "command",
+        "cost": 4,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Draw three cards."],
+        "artists": ["Katie Ampersand"],
+        "set": "Normality",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card"]
+    },
+    {
+        "id": "high_noon",
+        "name": "High Noon",
+        "description": "You and your opponent draw a card and reveal it.\n\nWhoever drew the card wih greatest power, plays it. The other one discards it.\n\nIf both have equal power, both play the card they drew.",
+        "type": "command",
+        "cost": 3,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["You and your opponent draw a card and reveal it.", "Whoever has the card with greatest power, plays it. The other one discards it. If both have equal power, both play the card they drew."],
+        "artists": ["Katie Ampersand"],
+        "set": "Fun And Games",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card", "play card", "gimmick"]
+    },
+    {
+        "id": "slippery_frog",
+        "name": "Slippery Frog",
+        "description": "",
+        "type": "creature",
+        "cost": 2,
+        "health": 3,
+        "defense": 1,
+        "power": 2,
+        "kins": [],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "amulet_of_katta",
+        "name": "Amulet Of Kätta",
+        "img": ["AmuletOfKatta"],
+        "description": "Add 2 points to the health pool.",
+        "type": "command",
+        "cost": 1,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "abilities": ["Add 2 points to the health pool."],
+        "artists": ["Katie Ampersand"],
+        "set": "Normality",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["heal pool"]
+    },
+    {
+        "id": "flask_of_ants",
+        "name": "Flask Of Ants",
+        "description": "Ant Kin\n\nLimit: 2",
+        "type": "blood flask",
+        "cost": 0,
+        "health": 1,
+        "defense": 0,
+        "power": 0,
+        "kins": ["ant", "insect"],
+        "keywords": [{"name": "limit: 3"}],
+        "abilities": [],
+        "artists": ["Katie Ampersand"],
+        "set": "None",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["gain blood"]
+    },
+    {
+        "id": "tetration",
+        "name": "Tetration",
+        "description": "Look at the top 5 cards from your deck. Put one in your hand and discard the rest.",
+        "type": "command",
+        "cost": 3,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": ["ant", "insect"],
+        "keywords": [],
+        "abilities": ["Look at the top 5 cards from your deck. Put one in your hand and discard the rest."],
+        "artists": ["Katie Ampersand"],
+        "set": "None",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card", "discard card"]
+    },
+    {
+        "id": "wall_of_living_rock",
+        "name": "Wall Of Living Rock",
+        "description": "When this creature enters the board, draw a card.\n\nWhen this creature dies, you do not gain any blood.",
+        "type": "creature",
+        "cost": 1,
+        "health": 2,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "keywords": [],
+        "abilities": ["When this creature enters the board, draw a card", "When this creature dies, you do not gain any blood."],
+        "artists": ["Katie Ampersand"],
+        "set": "Experiments",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["draw card", "stall"]
+    },
+    {
+        "id": "hermit_of_the_snowy_peaks",
+        "name": "Hermit Of The Snowy Peaks",
+        "description": "If you control no other creatures at the beginning of your turn, this creature gets +3 power.",
+        "type": "creature",
+        "cost": 2,
+        "health": 3,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "keywords": [],
+        "abilities": ["If you control no other creatures at the beginning of your turn, this creature gets +3 power."],
+        "artists": ["Katie Ampersand"],
+        "set": "The Forest",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": []
+    },
+    {
+        "id": "ant_serum",
+        "name": "Ant Serum",
+        "description": "A creature you control gains Kin Strength until end of turn.",
+        "type": "command",
+        "cost": 1,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "keywords": [],
+        "abilities": ["A creature you control gains Kin Strength until end of turn."],
+        "artists": ["Katie Ampersand"],
+        "set": "Experiments",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["modify card", "give kin strength"]
+    },
+    {
+        "id": "revivificate",
+        "name": "Revivificate",
+        "description": "Put a creature of cost four or less from your discard pile into your hand",
+        "type": "command",
+        "cost": 2,
+        "health": 0,
+        "defense": 0,
+        "power": 0,
+        "kins": [],
+        "keywords": [],
+        "abilities": ["Put a creature of cost four or less from your discard pile into your hand"],
+        "artists": ["Katie Ampersand"],
+        "set": "Experiments",
+        "legality": {
+            "tournaments": "y",
+            "bloodful": "y",
+            "bloodless": "y"
+        },
+        "other": [],
+        "functions": ["bounce card"]
+    }
+]

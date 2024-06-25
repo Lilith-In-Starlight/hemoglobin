@@ -1,3 +1,4 @@
+pub mod compare;
 pub mod imprecise_eq;
 pub mod imprecise_ord;
 use std::{cmp::Ordering, fmt::Display};
@@ -58,6 +59,15 @@ impl MaybeVar {
     }
 }
 
+pub trait Compare {
+    fn gt(&self, comparison: usize) -> QueryMatch;
+    fn gt_eq(&self, comparison: usize) -> QueryMatch;
+    fn lt(&self, comparison: usize) -> QueryMatch;
+    fn lt_eq(&self, comparison: usize) -> QueryMatch;
+    fn eq(&self, comparison: usize) -> QueryMatch;
+    fn ne(&self, comparison: usize) -> QueryMatch;
+}
+
 pub trait ImpreciseEq<Other> {
     fn imprecise_eq(&self, other: &Other) -> bool;
 }
@@ -91,30 +101,14 @@ impl Display for Comparison {
 }
 
 impl Comparison {
-    pub fn compare<T: PartialOrd<usize>>(&self, a: &T) -> bool {
+    pub fn compare<T: Compare>(&self, a: &T) -> QueryMatch {
         match self {
-            Comparison::GreaterThan(x) => a > x,
-            Comparison::Equal(x) => a == x,
-            Comparison::LowerThan(x) => a < x,
-            Comparison::NotEqual(x) => a != x,
-            Comparison::GreaterThanOrEqual(x) => a >= x,
-            Comparison::LowerThanOrEqual(x) => a <= x,
-        }
-    }
-
-    pub fn maybe_compare<T>(&self, a: Option<T>) -> QueryMatch
-    where
-        Comparison: ImpreciseOrd<T>,
-    {
-        match a {
-            Some(a) => {
-                if self.imprecise_cmp(&a).is_eq() {
-                    QueryMatch::Match
-                } else {
-                    QueryMatch::NotMatch
-                }
-            }
-            None => QueryMatch::NotHave,
+            Comparison::GreaterThan(x) => a.gt(*x),
+            Comparison::Equal(x) => a.eq(*x),
+            Comparison::LowerThan(x) => a.lt(*x),
+            Comparison::NotEqual(x) => a.ne(*x),
+            Comparison::GreaterThanOrEqual(x) => a.gt_eq(*x),
+            Comparison::LowerThanOrEqual(x) => a.lt_eq(*x),
         }
     }
 }

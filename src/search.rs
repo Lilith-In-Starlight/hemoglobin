@@ -36,6 +36,16 @@ pub enum Errors {
     AttemptedEmptyParamName,
 }
 
+impl From<bool> for QueryMatch {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::Match
+        } else {
+            Self::NotMatch
+        }
+    }
+}
+
 /// Represents a search query
 #[derive(Debug, Clone)]
 pub struct Query {
@@ -288,7 +298,17 @@ where
                 });
             }
             QueryRestriction::Comparison(field, comparison) => {
-                filtered = filtered.and(comparison.maybe_compare(card.get_num_property(field)));
+                if let Some(name) = card.get_name() {
+                    if name == "Crypt Mantis" {
+                        println!(
+                            "{:#?}",
+                            card.get_num_property(field)
+                                .unwrap()
+                                .imprecise_cmp(comparison)
+                        );
+                    }
+                }
+                filtered = filtered.and(comparison.compare(&card.get_num_property(field)));
             }
             QueryRestriction::Contains(field, contains) => {
                 let matches = match card.get_text_property(field) {
