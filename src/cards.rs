@@ -246,7 +246,7 @@ impl ReadProperties for &Card {
     }
 }
 
-impl ReadProperties for CardID {
+impl ReadProperties for CardId {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => self.cost,
@@ -312,7 +312,7 @@ impl ReadProperties for CardID {
     }
 }
 
-impl ReadProperties for &CardID {
+impl ReadProperties for &CardId {
     fn get_num_property(&self, property: &NumberProperties) -> Option<usize> {
         match property {
             NumberProperties::Cost => self.cost,
@@ -380,7 +380,7 @@ impl ReadProperties for &CardID {
 
 /// Data structure for card identities. These card identities are slightly more general than the concept within the game, as they allow you to match things that are only relevant for searching cards.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct CardID {
+pub struct CardId {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -413,7 +413,7 @@ pub struct CardID {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
-    CardID(CardID),
+    CardID(CardId),
     String(String),
 }
 
@@ -494,7 +494,7 @@ impl Card {
     }
 }
 
-impl CardID {
+impl CardId {
     #[must_use]
     /// Creates a vector of `QueryRestriction`s defined by the `CardID`.
     pub fn get_as_query(&self) -> Vec<QueryRestriction> {
