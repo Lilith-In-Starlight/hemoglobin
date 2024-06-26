@@ -56,6 +56,7 @@ pub struct Card {
     #[serde(default)]
     /// What the card can be used for.
     pub functions: Vec<String>,
+    #[serde(default)]
     /// The card's flavor text
     pub flavor_text: String,
 }
