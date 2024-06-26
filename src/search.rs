@@ -228,19 +228,31 @@ pub enum Sort {
 #[must_use]
 pub fn fuzzy(card: &impl Read, query: &str) -> bool {
     card.get_description()
-        .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
+        .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
         || card
             .get_name()
-            .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
+            .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
         || card
             .get_type()
-            .is_some_and(|x| x.to_lowercase().contains(&query.to_lowercase()))
-        || card
-            .get_kins()
-            .is_some_and(|x| x.iter().any(|x| x.contains(&query.to_lowercase())))
-        || card
-            .get_keywords()
-            .is_some_and(|x| x.iter().any(|x| x.name.contains(&query.to_lowercase())))
+            .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
+        || card.get_kins().is_some_and(|x| {
+            x.iter()
+                .any(|x| clean_ascii(x).contains(&clean_ascii(query)))
+        })
+        || card.get_keywords().is_some_and(|x| {
+            x.iter()
+                .any(|x| clean_ascii(&x.name).contains(&clean_ascii(query)))
+        })
+}
+
+/// Only handles lowercase because it'll be applied after `to_lowercase`
+fn clean_ascii(string: &str) -> String {
+    let string = string.to_lowercase();
+    let string = string.replace("ä", "a");
+    let string = string.replace("ë", "e");
+    let string = string.replace("ï", "i");
+    let string = string.replace("ö", "o");
+    string.replace("ü", "u")
 }
 
 /// The Cache for `devouredby` queries.
@@ -362,7 +374,7 @@ where
             QueryRestriction::Contains(field, contains) => {
                 let matches = match card.get_text_property(field) {
                     Some(property) => {
-                        if property.to_lowercase().contains(&contains.to_lowercase()) {
+                        if clean_ascii(property).contains(&clean_ascii(contains)) {
                             Ternary::True
                         } else {
                             Ternary::False
