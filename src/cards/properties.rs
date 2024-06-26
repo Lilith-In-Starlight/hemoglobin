@@ -22,6 +22,8 @@ pub trait Read {
     fn get_type(&self) -> Option<&str>;
     /// Return a card's kins, if it has them. It may not have them if it is a `CardID`.
     fn get_kins(&self) -> Option<&[String]>;
+    /// Return a card's flavor text, if it has one. It may not have one if it is a `CardID`.
+    fn get_flavor_text(&self) -> Option<&str>;
 }
 
 /// A card's numerical properties
@@ -69,6 +71,7 @@ pub enum Text {
     Name,
     Type,
     Description,
+    FlavorText,
 }
 
 impl Display for Text {
@@ -78,6 +81,7 @@ impl Display for Text {
             Text::Name => write!(f, "Name"),
             Text::Type => write!(f, "Type"),
             Text::Description => write!(f, "Description"),
+            Text::FlavorText => write!(f, "FlavorText"),
         }
     }
 }

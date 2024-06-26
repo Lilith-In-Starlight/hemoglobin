@@ -56,6 +56,8 @@ pub struct Card {
     #[serde(default)]
     /// What the card can be used for.
     pub functions: Vec<String>,
+    /// The card's flavor text
+    pub flavor_text: String,
 }
 
 impl Display for Card {
@@ -76,6 +78,9 @@ impl Display for Card {
 }
 
 impl Read for Card {
+    fn get_flavor_text(&self) -> Option<&str> {
+        Some(&self.flavor_text)
+    }
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
@@ -113,6 +118,7 @@ impl Read for Card {
             Text::Name => &self.name,
             Text::Type => &self.r#type,
             Text::Description => &self.description,
+            Text::FlavorText => &self.flavor_text,
         })
     }
 
@@ -155,6 +161,9 @@ impl Read for Card {
 }
 
 impl Read for &Card {
+    fn get_flavor_text(&self) -> Option<&str> {
+        Some(&self.flavor_text)
+    }
     /// Return a card's numeric property, if it has it.
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
@@ -192,6 +201,7 @@ impl Read for &Card {
             Text::Name => &self.name,
             Text::Type => &self.r#type,
             Text::Description => &self.description,
+            Text::FlavorText => &self.flavor_text,
         })
     }
 
@@ -234,6 +244,9 @@ impl Read for &Card {
 }
 
 impl Read for CardId {
+    fn get_flavor_text(&self) -> Option<&str> {
+        None
+    }
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
             Number::Cost => self.cost.clone(),
@@ -267,6 +280,7 @@ impl Read for CardId {
             Text::Name => self.name.as_deref(),
             Text::Type => self.r#type.as_deref(),
             Text::Description => self.description.as_deref(),
+            Text::FlavorText => None,
         }
     }
 
@@ -300,6 +314,9 @@ impl Read for CardId {
 }
 
 impl Read for &CardId {
+    fn get_flavor_text(&self) -> Option<&str> {
+        None
+    }
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
             Number::Cost => self.cost.clone(),
@@ -333,6 +350,7 @@ impl Read for &CardId {
             Text::Name => self.name.as_deref(),
             Text::Type => self.r#type.as_deref(),
             Text::Description => self.description.as_deref(),
+            Text::FlavorText => None,
         }
     }
 

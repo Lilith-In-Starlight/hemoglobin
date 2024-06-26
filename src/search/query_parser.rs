@@ -314,6 +314,7 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
     match str {
         "id" => Ok(Properties::StringProperty(Text::Id)),
         "name" | "n" => Ok(Properties::StringProperty(Text::Name)),
+        "flavortext" | "flavor" | "ft" => Ok(Properties::StringProperty(Text::FlavorText)),
         "description" | "desc" | "de" => Ok(Properties::StringProperty(Text::Description)),
         "type" | "t" => Ok(Properties::StringProperty(Text::Type)),
         "cost" | "c" => Ok(Properties::NumProperty(Number::Cost)),
