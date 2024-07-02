@@ -1,4 +1,5 @@
 pub mod properties;
+pub mod rich_text;
 use crate::cards::properties::Array;
 use crate::cards::properties::Number;
 use crate::cards::properties::Read;
@@ -416,7 +417,7 @@ pub struct CardId {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
-    CardID(CardId),
+    CardId(CardId),
     String(String),
 }
 

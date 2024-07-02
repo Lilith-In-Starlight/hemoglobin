@@ -409,7 +409,7 @@ where
             QueryRestriction::Devours(query) => {
                 let matches = match_in_vec(card.get_keywords(), |keyword| {
                     if keyword.name == "devours" {
-                        if let Some(KeywordData::CardID(ref devoured_id)) = keyword.data {
+                        if let Some(KeywordData::CardId(ref devoured_id)) = keyword.data {
                             matches_query(&devoured_id, query, cards, cache) == Ternary::True
                         } else {
                             false
@@ -441,7 +441,7 @@ where
                     for devourer in devourers {
                         if let Some(Keyword {
                             name: _,
-                            data: Some(KeywordData::CardID(card_id)),
+                            data: Some(KeywordData::CardId(card_id)),
                         }) = devourer
                             .get_keywords()
                             .and_then(|x| x.iter().find(|x| x.name == "devours"))
