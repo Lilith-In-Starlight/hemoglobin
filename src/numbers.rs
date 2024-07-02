@@ -1,5 +1,4 @@
 pub mod compare;
-pub mod imprecise_eq;
 pub mod imprecise_ord;
 use std::{
     cmp::Ordering,
@@ -11,6 +10,7 @@ use serde_json::Value;
 
 use crate::search::{query_parser::text_comparison_parser, Ternary};
 
+/// Represents a number that may match a range instead of a single number
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum MaybeImprecise {
     Precise(MaybeVar),
@@ -42,6 +42,7 @@ impl MaybeImprecise {
     }
 }
 
+/// Represents a Bloodless Number. Bloodless Numbers are defined in section 1.7 of the Bloodless Abstract Rules.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaybeVar {
     Const(usize),
@@ -64,6 +65,7 @@ impl Default for MaybeVar {
 }
 
 impl MaybeVar {
+    /// If a number is a variable, it will usually be assumed to be zero. This might change in the future.
     #[must_use]
     pub const fn assume(&self) -> usize {
         match self {
@@ -73,6 +75,7 @@ impl MaybeVar {
     }
 }
 
+/// A trait for types that can be numerically matched with `usize`
 pub trait Compare {
     fn gt(&self, comparison: usize) -> Ternary;
     fn gt_eq(&self, comparison: usize) -> Ternary;
@@ -82,10 +85,7 @@ pub trait Compare {
     fn ne(&self, comparison: usize) -> Ternary;
 }
 
-pub trait ImpreciseEq<Other> {
-    fn imprecise_eq(&self, other: &Other) -> bool;
-}
-
+/// A version of ordering that works over ranges and does not necessitate a notion of equality, which cannot be defined for Bloodless number ranges
 pub trait ImpreciseOrd<Other> {
     fn imprecise_cmp(&self, other: &Other) -> Ordering;
 }
