@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 
 use super::{Comparison, ImpreciseOrd, MaybeImprecise, MaybeVar};
 
-impl<T: ImpreciseOrd<T>> ImpreciseOrd<Option<T>> for Option<T> {
-    fn imprecise_cmp(&self, other: &Option<T>) -> Ordering {
+impl<T: ImpreciseOrd<T>> ImpreciseOrd<Self> for Option<T> {
+    fn imprecise_cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Some(x), Some(y)) => x.imprecise_cmp(y),
             (Some(_), None) => Ordering::Greater,
@@ -21,36 +21,32 @@ impl<U, T: ImpreciseOrd<U>> ImpreciseOrd<&U> for &T {
 impl ImpreciseOrd<Self> for Comparison {
     fn imprecise_cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
+            (Self::GreaterThan(x), Self::GreaterThan(y) | Self::Equal(y) | Self::NotEqual(y)) => {
+                x.cmp(y)
+            }
             (
-                Comparison::Equal(x),
-                Comparison::Equal(y)
-                | Comparison::GreaterThanOrEqual(y)
-                | Comparison::LowerThanOrEqual(y),
+                Self::GreaterThanOrEqual(x),
+                Self::GreaterThanOrEqual(y)
+                | Self::LowerThanOrEqual(y)
+                | Self::GreaterThan(y)
+                | Self::Equal(y),
+            )
+            | (
+                Self::Equal(x),
+                Self::Equal(y) | Self::GreaterThanOrEqual(y) | Self::LowerThanOrEqual(y),
             ) => x.cmp(y),
+            (Self::LowerThan(x), Self::LowerThan(y) | Self::Equal(y) | Self::NotEqual(y)) => {
+                x.cmp(y).reverse()
+            }
             (
-                Comparison::GreaterThan(x),
-                Comparison::GreaterThan(y) | Comparison::Equal(y) | Comparison::NotEqual(y),
-            ) => x.cmp(y),
-            (
-                Comparison::GreaterThanOrEqual(x),
-                Comparison::GreaterThanOrEqual(y)
-                | Comparison::LowerThanOrEqual(y)
-                | Comparison::GreaterThan(y)
-                | Comparison::Equal(y),
-            ) => x.cmp(y),
-            (
-                Comparison::LowerThan(x),
-                Comparison::LowerThan(y) | Comparison::Equal(y) | Comparison::NotEqual(y),
+                Self::LowerThanOrEqual(x),
+                Self::LowerThanOrEqual(y)
+                | Self::GreaterThanOrEqual(y)
+                | Self::LowerThan(y)
+                | Self::Equal(y),
             ) => x.cmp(y).reverse(),
-            (
-                Comparison::LowerThanOrEqual(x),
-                Comparison::LowerThanOrEqual(y)
-                | Comparison::GreaterThanOrEqual(y)
-                | Comparison::LowerThan(y)
-                | Comparison::Equal(y),
-            ) => x.cmp(y).reverse(),
-            (Comparison::NotEqual(_), Comparison::Equal(_)) => Ordering::Less,
-            (Comparison::NotEqual(_), _) => Ordering::Equal,
+            (Self::NotEqual(_), Self::Equal(_)) => Ordering::Less,
+            (Self::NotEqual(_), _) => Ordering::Equal,
             _ => Ordering::Less,
         }
     }
@@ -77,8 +73,8 @@ impl ImpreciseOrd<Self> for Comparison {
 //     }
 // }
 
-impl ImpreciseOrd<MaybeVar> for MaybeVar {
-    fn imprecise_cmp(&self, other: &MaybeVar) -> Ordering {
+impl ImpreciseOrd<Self> for MaybeVar {
+    fn imprecise_cmp(&self, other: &Self) -> Ordering {
         self.assume().cmp(&other.assume())
     }
 }
@@ -98,7 +94,7 @@ impl ImpreciseOrd<MaybeVar> for MaybeVar {
 
 impl ImpreciseOrd<MaybeVar> for Comparison {
     fn imprecise_cmp(&self, other: &MaybeVar) -> Ordering {
-        self.imprecise_cmp(&Comparison::Equal(other.assume()))
+        self.imprecise_cmp(&Self::Equal(other.assume()))
     }
 }
 
@@ -109,8 +105,8 @@ impl ImpreciseOrd<Comparison> for MaybeVar {
     }
 }
 
-impl ImpreciseOrd<MaybeImprecise> for MaybeImprecise {
-    fn imprecise_cmp(&self, other: &MaybeImprecise) -> Ordering {
+impl ImpreciseOrd<Self> for MaybeImprecise {
+    fn imprecise_cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Precise(x), Self::Imprecise(y)) | (Self::Imprecise(y), Self::Precise(x)) => {
                 x.imprecise_cmp(y)

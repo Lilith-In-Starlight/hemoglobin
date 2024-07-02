@@ -2,7 +2,7 @@
 name = "hemoglobin"
 description = "Utilities for Bloodless"
 license = "MIT"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 authors = ["Arity <katie-and@ampersandia.net>"]
 readme = "README.md"

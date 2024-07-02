@@ -4,114 +4,98 @@ use super::{Compare, Comparison, MaybeImprecise};
 
 impl<T: Compare> Compare for Option<T> {
     fn gt(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.gt(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.gt(comparison))
     }
 
     fn gt_eq(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.gt_eq(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.gt_eq(comparison))
     }
 
     fn lt(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.lt(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.lt(comparison))
     }
 
     fn lt_eq(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.lt_eq(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.lt_eq(comparison))
     }
 
     fn eq(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.eq(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.eq(comparison))
     }
 
     fn ne(&self, comparison: usize) -> Ternary {
-        match self {
-            None => Ternary::Void,
-            Some(x) => x.ne(comparison),
-        }
+        self.as_ref().map_or(Ternary::Void, |x| x.ne(comparison))
     }
 }
 
 impl Compare for MaybeImprecise {
     fn gt(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (x.assume() > comparison).into(),
-            MaybeImprecise::Imprecise(x) => match x {
-                Comparison::Equal(x) => (*x > comparison).into(),
+            Self::Precise(x) => (x.assume() > comparison).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::GreaterThan(_)
                 | Comparison::GreaterThanOrEqual(_)
                 | Comparison::NotEqual(_) => Ternary::True,
                 Comparison::LowerThan(x) => (*x > comparison + 1).into(),
-                Comparison::LowerThanOrEqual(x) => (*x > comparison).into(),
+                Comparison::LowerThanOrEqual(x) | Comparison::Equal(x) => (*x > comparison).into(),
             },
         }
     }
 
     fn gt_eq(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (x.assume() >= comparison).into(),
-            MaybeImprecise::Imprecise(x) => match x {
+            Self::Precise(x) => (x.assume() >= comparison).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::Equal(x) => (*x >= comparison).into(),
                 Comparison::GreaterThan(_)
                 | Comparison::GreaterThanOrEqual(_)
                 | Comparison::NotEqual(_) => Ternary::True,
-                Comparison::LowerThan(x) => (*x > comparison).into(),
-                Comparison::LowerThanOrEqual(x) => (*x > comparison).into(),
+                Comparison::LowerThan(x) | Comparison::LowerThanOrEqual(x) => {
+                    (*x > comparison).into()
+                }
             },
         }
     }
 
     fn lt(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (x.assume() < comparison).into(),
-            MaybeImprecise::Imprecise(x) => match x {
-                Comparison::Equal(x) => (*x < comparison).into(),
+            Self::Precise(x) => (x.assume() < comparison).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::GreaterThan(x) => (*x < comparison - 1).into(),
-                Comparison::GreaterThanOrEqual(x) => (*x < comparison).into(),
-                Comparison::LowerThan(_) => Ternary::True,
-                Comparison::LowerThanOrEqual(_) => Ternary::True,
-                Comparison::NotEqual(_) => Ternary::True,
+                Comparison::GreaterThanOrEqual(x) | Comparison::Equal(x) => {
+                    (*x < comparison).into()
+                }
+                Comparison::LowerThan(_)
+                | Comparison::LowerThanOrEqual(_)
+                | Comparison::NotEqual(_) => Ternary::True,
             },
         }
     }
 
     fn lt_eq(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (x.assume() <= comparison).into(),
-            MaybeImprecise::Imprecise(x) => match x {
+            Self::Precise(x) => (x.assume() <= comparison).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::Equal(x) => (*x <= comparison).into(),
-                Comparison::GreaterThan(x) => (*x < comparison).into(),
-                Comparison::GreaterThanOrEqual(x) => (*x < comparison).into(),
-                Comparison::LowerThan(_) => Ternary::True,
-                Comparison::LowerThanOrEqual(_) => Ternary::True,
-                Comparison::NotEqual(_) => Ternary::True,
+                Comparison::GreaterThan(x) | Comparison::GreaterThanOrEqual(x) => {
+                    (*x < comparison).into()
+                }
+                Comparison::LowerThan(_)
+                | Comparison::LowerThanOrEqual(_)
+                | Comparison::NotEqual(_) => Ternary::True,
             },
         }
     }
 
     fn eq(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (comparison == x.assume()).into(),
-            MaybeImprecise::Imprecise(x) => match x {
+            Self::Precise(x) => (comparison == x.assume()).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::Equal(x) => (comparison == *x).into(),
-                Comparison::GreaterThan(x) => (comparison < *x).into(),
-                Comparison::GreaterThanOrEqual(x) => (comparison <= *x).into(),
-                Comparison::LowerThan(x) => (comparison > *x).into(),
-                Comparison::LowerThanOrEqual(x) => (comparison >= *x).into(),
+                Comparison::GreaterThan(x) => (comparison > *x).into(),
+                Comparison::GreaterThanOrEqual(x) => (comparison >= *x).into(),
+                Comparison::LowerThan(x) => (comparison < *x).into(),
+                Comparison::LowerThanOrEqual(x) => (comparison <= *x).into(),
                 Comparison::NotEqual(x) => (comparison != *x).into(),
             },
         }
@@ -119,14 +103,14 @@ impl Compare for MaybeImprecise {
 
     fn ne(&self, comparison: usize) -> Ternary {
         match self {
-            MaybeImprecise::Precise(x) => (comparison != x.assume()).into(),
-            MaybeImprecise::Imprecise(x) => match x {
+            Self::Precise(x) => (comparison != x.assume()).into(),
+            Self::Imprecise(x) => match x {
                 Comparison::Equal(x) => (comparison != *x).into(),
-                Comparison::GreaterThan(_) => Ternary::True,
-                Comparison::GreaterThanOrEqual(_) => Ternary::True,
-                Comparison::LowerThan(_) => Ternary::True,
-                Comparison::LowerThanOrEqual(_) => Ternary::True,
-                Comparison::NotEqual(_) => Ternary::True,
+                Comparison::GreaterThan(_)
+                | Comparison::GreaterThanOrEqual(_)
+                | Comparison::LowerThan(_)
+                | Comparison::LowerThanOrEqual(_)
+                | Comparison::NotEqual(_) => Ternary::True,
             },
         }
     }

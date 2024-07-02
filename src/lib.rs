@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
 
 //! Hemolymph is a library containing data structures and functions useful for the card game Bloodless. It is used by [Hemolymph](http://hemolymph.net), the official card search engine.
 //!
@@ -34,9 +35,9 @@ mod test {
     #[test]
     fn test_search() {
         let data =
-            fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
+            fs::read_to_string("../hemolymph/server/cards.json").expect("Unable to read file");
         let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("n:katta").unwrap();
+        let parsed = query_parser::query_parser("c!=2 n:default").unwrap();
         println!("{parsed}");
         // println!("{parsed:#?}");
         let cards = PrintableCards(search(&parsed, cards.iter()));
@@ -46,7 +47,7 @@ mod test {
     #[test]
     fn test_serialize() {
         let string =
-            fs::read_to_string("../hemolymph-server/cards.json").expect("Unable to read file");
+            fs::read_to_string("../hemolymph/server/cards.json").expect("Unable to read file");
         let cards1: Vec<Card> = serde_json::from_str(&string).expect("Unable to parse JSON");
         let data = serde_json::to_string_pretty(&cards1).unwrap();
         let cards2: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");

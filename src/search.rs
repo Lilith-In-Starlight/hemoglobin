@@ -65,14 +65,15 @@ impl Ternary {
     /// If both values are `NotHave`, the output will be `NotHave`.
     /// If no value is Match and there is a `NotHave`, the output will be `NotHave`.
     #[must_use]
-    pub fn xor(self, b: Self) -> Self {
+    pub const fn xor(self, b: Self) -> Self {
         match (self, b) {
-            (Self::True, Self::True) => Self::False,
             (Self::Void, Self::Void) => Self::Void,
             (Self::True, Self::False | Self::Void) | (Self::False | Self::Void, Self::True) => {
                 Self::True
             }
-            (Self::False | Self::Void, Self::False) | (Self::False, Self::Void) => Self::False,
+            (Self::False | Self::Void, Self::False)
+            | (Self::False, Self::Void)
+            | (Self::True, Self::True) => Self::False,
         }
     }
     /// A ternary AND which outputs the lowest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
@@ -83,7 +84,7 @@ impl Ternary {
 }
 
 impl Not for Ternary {
-    type Output = Ternary;
+    type Output = Self;
 
     /// Ternary NOT where `NotHave` is considered opposite to itself.
     fn not(self) -> Self::Output {
@@ -148,33 +149,33 @@ impl Display for Query {
 impl Display for QueryRestriction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            QueryRestriction::DevouredBy(devourer) => {
+            Self::DevouredBy(devourer) => {
                 write!(f, "which are devoured by [{devourer}]")
             }
-            QueryRestriction::Fuzzy(text) => write!(f, "with \"{text}\" written on them"),
-            QueryRestriction::Devours(devourees) => write!(f, "that devour [{devourees}]"),
-            QueryRestriction::Comparison(property, comparison) => {
+            Self::Fuzzy(text) => write!(f, "with \"{text}\" written on them"),
+            Self::Devours(devourees) => write!(f, "that devour [{devourees}]"),
+            Self::Comparison(property, comparison) => {
                 write!(f, "with {property} {comparison}")
             }
-            QueryRestriction::Contains(property, text) => {
+            Self::Contains(property, text) => {
                 write!(f, "whose {property} contains \"{text}\"")
             }
-            QueryRestriction::Regex(property, regex) => {
+            Self::Regex(property, regex) => {
                 write!(f, "whose {property} matches /{regex}/")
             }
-            QueryRestriction::Has(property, text) => match property {
+            Self::Has(property, text) => match property {
                 Array::Functions => write!(f, "which can be used to \"{text}\""),
                 property => write!(f, "whose {property} have \"{text}\" among them"),
             },
-            QueryRestriction::HasKw(keyword) => write!(f, "with a \"{keyword}\" keyword"),
-            QueryRestriction::Not(query) => write!(f, "that aren't [{query}]"),
-            QueryRestriction::LenientNot(query) => write!(
+            Self::HasKw(keyword) => write!(f, "with a \"{keyword}\" keyword"),
+            Self::Not(query) => write!(f, "that aren't [{query}]"),
+            Self::LenientNot(query) => write!(
                 f,
                 "that aren't [{query}], counting lacks of a property as a non-match"
             ),
-            QueryRestriction::Group(query) => write!(f, "which are [{query}]"),
-            QueryRestriction::Or(a, b) => write!(f, "which are [{a}] or [{b}]"),
-            QueryRestriction::Xor(a, b) => write!(f, "which are [{a}] xor [{b}] but not both"),
+            Self::Group(query) => write!(f, "which are [{query}]"),
+            Self::Or(a, b) => write!(f, "which are [{a}] or [{b}]"),
+            Self::Xor(a, b) => write!(f, "which are [{a}] xor [{b}] but not both"),
         }
     }
 }
@@ -334,16 +335,14 @@ where
         match res {
             QueryRestriction::Regex(property, regex) => {
                 let matches = {
-                    match card.get_text_property(property) {
-                        None => Ternary::Void,
-                        Some(value) => {
+                    card.get_text_property(property)
+                        .map_or(Ternary::Void, |value| {
                             if regex.is_match(&value.to_lowercase()) {
                                 Ternary::True
                             } else {
                                 Ternary::False
                             }
-                        }
-                    }
+                        })
                 };
                 filtered = filtered.and(matches);
             }
@@ -372,16 +371,15 @@ where
                 filtered = filtered.and(comparison.compare(&card.get_num_property(field)));
             }
             QueryRestriction::Contains(field, contains) => {
-                let matches = match card.get_text_property(field) {
-                    Some(property) => {
+                let matches = card
+                    .get_text_property(field)
+                    .map_or(Ternary::Void, |property| {
                         if clean_ascii(property).contains(&clean_ascii(contains)) {
                             Ternary::True
                         } else {
                             Ternary::False
                         }
-                    }
-                    None => Ternary::Void,
-                };
+                    });
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Has(field, thing) => {
@@ -494,14 +492,11 @@ where
 
 /// Returns whether any part of an optional `vec` fulfills a `cond`ition.
 pub fn match_in_vec<T>(vec: Option<&[T]>, cond: impl Fn(&T) -> bool) -> Ternary {
-    match vec {
-        Some(vec) => {
-            if vec.iter().any(cond) {
-                Ternary::True
-            } else {
-                Ternary::False
-            }
+    vec.map_or(Ternary::Void, |vec| {
+        if vec.iter().any(cond) {
+            Ternary::True
+        } else {
+            Ternary::False
         }
-        None => Ternary::Void,
-    }
+    })
 }

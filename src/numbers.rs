@@ -1,22 +1,40 @@
 pub mod compare;
 pub mod imprecise_eq;
 pub mod imprecise_ord;
-use std::{cmp::Ordering, fmt::Display};
+use std::{
+    cmp::Ordering,
+    fmt::{Debug, Display},
+};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::search::{query_parser::text_comparison_parser, Ternary};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum MaybeImprecise {
     Precise(MaybeVar),
     Imprecise(Comparison),
 }
 
+impl Default for MaybeImprecise {
+    fn default() -> Self {
+        Self::Precise(MaybeVar::Const(0))
+    }
+}
+
+impl Display for MaybeImprecise {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Precise(x) => write!(f, "{x}"),
+            Self::Imprecise(x) => write!(f, "{x}"),
+        }
+    }
+}
+
 impl MaybeImprecise {
     #[must_use]
-    pub fn as_comparison(&self) -> Comparison {
+    pub const fn as_comparison(&self) -> Comparison {
         match self {
             Self::Precise(x) => Comparison::Equal(x.assume()),
             Self::Imprecise(x) => *x,
@@ -47,11 +65,7 @@ impl Default for MaybeVar {
 
 impl MaybeVar {
     #[must_use]
-    pub fn as_maybe_imprecise(&self) -> MaybeImprecise {
-        MaybeImprecise::Precise(self.clone())
-    }
-    #[must_use]
-    pub fn assume(&self) -> usize {
+    pub const fn assume(&self) -> usize {
         match self {
             Self::Const(x) => *x,
             Self::Var(_) => 0,
@@ -77,7 +91,7 @@ pub trait ImpreciseOrd<Other> {
 }
 
 /// Comparisons to a certain numeric value
-#[derive(PartialEq, Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Eq, PartialEq, Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Comparison {
     GreaterThan(usize),
     GreaterThanOrEqual(usize),
@@ -90,25 +104,25 @@ pub enum Comparison {
 impl Display for Comparison {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::GreaterThan(number) => write!(f, "greater than {number}"),
-            Self::GreaterThanOrEqual(number) => write!(f, "greater than or equal to {number}"),
-            Self::LowerThanOrEqual(number) => write!(f, "lower than than or equal to {number}"),
-            Self::Equal(number) => write!(f, "equal to {number}"),
-            Self::LowerThan(number) => write!(f, "lower than {number}"),
-            Self::NotEqual(number) => write!(f, "other than {number}"),
+            Self::GreaterThan(number) => write!(f, "> {number}"),
+            Self::GreaterThanOrEqual(number) => write!(f, ">= {number}"),
+            Self::LowerThanOrEqual(number) => write!(f, "<= {number}"),
+            Self::Equal(number) => write!(f, "= {number}"),
+            Self::LowerThan(number) => write!(f, "< {number}"),
+            Self::NotEqual(number) => write!(f, "!= {number}"),
         }
     }
 }
 
 impl Comparison {
-    pub fn compare<T: Compare>(&self, a: &T) -> Ternary {
+    pub fn compare<T: Compare + Debug>(&self, a: &T) -> Ternary {
         match self {
-            Comparison::GreaterThan(x) => a.gt(*x),
-            Comparison::Equal(x) => a.eq(*x),
-            Comparison::LowerThan(x) => a.lt(*x),
-            Comparison::NotEqual(x) => a.ne(*x),
-            Comparison::GreaterThanOrEqual(x) => a.gt_eq(*x),
-            Comparison::LowerThanOrEqual(x) => a.lt_eq(*x),
+            Self::GreaterThan(x) => a.gt(*x),
+            Self::Equal(x) => a.eq(*x),
+            Self::LowerThan(x) => a.lt(*x),
+            Self::NotEqual(x) => a.ne(*x),
+            Self::GreaterThanOrEqual(x) => a.gt_eq(*x),
+            Self::LowerThanOrEqual(x) => a.lt_eq(*x),
         }
     }
 }
@@ -119,8 +133,8 @@ impl Serialize for MaybeVar {
         S: serde::Serializer,
     {
         match self {
-            MaybeVar::Const(x) => serializer.serialize_u64((*x).try_into().unwrap()),
-            MaybeVar::Var(x) => serializer.serialize_str(&x.to_string()),
+            Self::Const(x) => serializer.serialize_u64((*x).try_into().unwrap()),
+            Self::Var(x) => serializer.serialize_str(&x.to_string()),
         }
     }
 }
@@ -131,8 +145,8 @@ impl Serialize for MaybeImprecise {
         S: serde::Serializer,
     {
         match self {
-            MaybeImprecise::Precise(x) => MaybeVar::serialize(x, serializer),
-            MaybeImprecise::Imprecise(x) => match x {
+            Self::Precise(x) => MaybeVar::serialize(x, serializer),
+            Self::Imprecise(x) => match x {
                 Comparison::Equal(x) => serializer.serialize_u64((*x).try_into().unwrap()),
                 Comparison::GreaterThan(x) => serializer.serialize_str(&format!(">{x}")),
                 Comparison::GreaterThanOrEqual(x) => serializer.serialize_str(&format!(">={x}")),
@@ -161,12 +175,12 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
     {
         let value = Value::deserialize(deserializer)?;
         if let Ok(x) = deserialize_maybe_var::<D>(&value) {
-            Ok(MaybeImprecise::Precise(x))
+            Ok(Self::Precise(x))
         } else {
             if let Some(text) = value.as_str() {
                 let comparison =
                     text_comparison_parser(text).map_err(|x| Error::custom(format!("{x:#?}")))?;
-                return Ok(MaybeImprecise::Imprecise(comparison));
+                return Ok(Self::Imprecise(comparison));
             }
             Err(Error::custom(
                 "Numbers that might be imprecise must be integers, single letters, or comparisons",

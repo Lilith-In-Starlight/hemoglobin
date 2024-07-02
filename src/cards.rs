@@ -4,7 +4,6 @@ use crate::cards::properties::Number;
 use crate::cards::properties::Read;
 use crate::cards::properties::Text;
 use crate::numbers::MaybeImprecise;
-use crate::numbers::MaybeVar;
 use rand::prelude::SliceRandom;
 use std::{collections::HashMap, fmt::Display};
 
@@ -25,13 +24,13 @@ pub struct Card {
     /// The card's text, excluding cost, stats and typeline.
     pub description: String,
     /// The card's blood cost.
-    pub cost: MaybeVar,
+    pub cost: MaybeImprecise,
     /// The card's health.
-    pub health: MaybeVar,
+    pub health: MaybeImprecise,
     /// The card's overkill protection.
-    pub defense: MaybeVar,
+    pub defense: MaybeImprecise,
     /// The card's power.
-    pub power: MaybeVar,
+    pub power: MaybeImprecise,
     /// The card's type (as per the game).
     pub r#type: String,
     #[serde(default)]
@@ -86,26 +85,26 @@ impl Read for Card {
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => Some(self.cost.as_maybe_imprecise()),
+            Number::Cost => Some(self.cost.clone()),
             Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.health.as_maybe_imprecise())
+                    Some(self.health.clone())
                 }
             }
             Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.defense.as_maybe_imprecise())
+                    Some(self.defense.clone())
                 }
             }
             Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.power.as_maybe_imprecise())
+                    Some(self.power.clone())
                 }
             }
         }
@@ -169,26 +168,26 @@ impl Read for &Card {
     /// Will only return None if the card's type contains the word "command" and the given value is not `NumberProperties::Cost`.
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise> {
         match property {
-            Number::Cost => Some(self.cost.as_maybe_imprecise()),
+            Number::Cost => Some(self.cost.clone()),
             Number::Health => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.health.as_maybe_imprecise())
+                    Some(self.health.clone())
                 }
             }
             Number::Defense => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.defense.as_maybe_imprecise())
+                    Some(self.defense.clone())
                 }
             }
             Number::Power => {
                 if self.r#type.contains("command") {
                     None
                 } else {
-                    Some(self.power.as_maybe_imprecise())
+                    Some(self.power.clone())
                 }
             }
         }
@@ -277,11 +276,10 @@ impl Read for CardId {
 
     fn get_text_property(&self, property: &Text) -> Option<&str> {
         match property {
-            Text::Id => None,
             Text::Name => self.name.as_deref(),
             Text::Type => self.r#type.as_deref(),
             Text::Description => self.description.as_deref(),
-            Text::FlavorText => None,
+            Text::FlavorText | Text::Id => None,
         }
     }
 
@@ -347,11 +345,10 @@ impl Read for &CardId {
 
     fn get_text_property(&self, property: &Text) -> Option<&str> {
         match property {
-            Text::Id => None,
             Text::Name => self.name.as_deref(),
             Text::Type => self.r#type.as_deref(),
             Text::Description => self.description.as_deref(),
-            Text::FlavorText => None,
+            Text::FlavorText | Text::Id => None,
         }
     }
 
@@ -438,7 +435,7 @@ impl Card {
         self.img
             .choose(&mut rand::thread_rng())
             .cloned()
-            .unwrap_or(self.name.replace(' ', ""))
+            .unwrap_or_else(|| self.name.replace(' ', ""))
     }
 }
 

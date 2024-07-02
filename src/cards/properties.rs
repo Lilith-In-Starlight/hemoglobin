@@ -77,11 +77,11 @@ pub enum Text {
 impl Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Text::Id => write!(f, "ID"),
-            Text::Name => write!(f, "Name"),
-            Text::Type => write!(f, "Type"),
-            Text::Description => write!(f, "Description"),
-            Text::FlavorText => write!(f, "FlavorText"),
+            Self::Id => write!(f, "ID"),
+            Self::Name => write!(f, "Name"),
+            Self::Type => write!(f, "Type"),
+            Self::Description => write!(f, "Description"),
+            Self::FlavorText => write!(f, "FlavorText"),
         }
     }
 }

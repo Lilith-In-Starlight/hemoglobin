@@ -21,11 +21,11 @@ enum Token {
 }
 
 impl Token {
-    fn polar_wrap(self, polarity: Ternary) -> Token {
+    fn polar_wrap(self, polarity: Ternary) -> Self {
         match polarity {
             Ternary::True => self,
-            Ternary::False => Token::Not(vec![self]),
-            Ternary::Void => Token::LenientNot(vec![self]),
+            Ternary::False => Self::Not(vec![self]),
+            Ternary::Void => Self::LenientNot(vec![self]),
         }
     }
 }
@@ -349,9 +349,9 @@ pub fn query_parser(q: &str) -> Result<Query, Errors> {
 }
 
 pub(crate) fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
-    match s.parse::<usize>() {
-        Ok(x) => Ok(Comparison::Equal(x)),
-        Err(_) => {
+    s.parse::<usize>().map_or_else(
+        |_| {
+            #[allow(clippy::option_if_let_else)]
             if let Some(end) = s.strip_prefix(">=") {
                 end.parse::<usize>()
                     .map(Comparison::GreaterThanOrEqual)
@@ -379,6 +379,7 @@ pub(crate) fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
             } else {
                 Err(Errors::InvalidComparisonString)
             }
-        }
-    }
+        },
+        |x| Ok(Comparison::Equal(x)),
+    )
 }
