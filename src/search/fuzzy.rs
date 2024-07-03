@@ -19,7 +19,7 @@ pub fn weighted_compare(a: &impl Read, b: &str) -> f32 {
     }
 
     if let Some(description) = a.get_description() {
-        result += fuzzy_compare(description, b) * 1.6;
+        result += fuzzy_compare(&description.to_string(), b) * 1.6;
     }
 
     if let Some(kins) = a.get_kins() {

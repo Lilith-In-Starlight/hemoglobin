@@ -6,6 +6,7 @@ use crate::cards::properties::Read;
 use crate::cards::properties::Text;
 use crate::numbers::MaybeImprecise;
 use rand::prelude::SliceRandom;
+use rich_text::RichString;
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::search::QueryRestriction;
 
 /// Data structure for Cards. All fields are mandatory.
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq, Default)]
 pub struct Card {
     /// A value that uniquely identifies the card. This is necessary because many cards may have the same name.
     pub id: String,
@@ -23,7 +24,7 @@ pub struct Card {
     #[serde(default)]
     pub img: Vec<String>,
     /// The card's text, excluding cost, stats and typeline.
-    pub description: String,
+    pub description: RichString,
     /// The card's blood cost.
     pub cost: MaybeImprecise,
     /// The card's health.
@@ -113,13 +114,13 @@ impl Read for Card {
 
     /// Return a card's text property, if it has it.
     /// Always returns Some.
-    fn get_text_property(&self, property: &Text) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<String> {
         Some(match property {
-            Text::Id => &self.id,
-            Text::Name => &self.name,
-            Text::Type => &self.r#type,
-            Text::Description => &self.description,
-            Text::FlavorText => &self.flavor_text,
+            Text::Id => self.id.to_string(),
+            Text::Name => self.name.to_string(),
+            Text::Type => self.r#type.to_string(),
+            Text::Description => self.description.to_string(),
+            Text::FlavorText => self.flavor_text.to_string(),
         })
     }
 
@@ -145,7 +146,7 @@ impl Read for Card {
     }
 
     /// Return a card's description. Always returns Some. If the card has no description, it will return Some empty string.
-    fn get_description(&self) -> Option<&str> {
+    fn get_description(&self) -> Option<&RichString> {
         Some(&self.description)
     }
 
@@ -196,13 +197,13 @@ impl Read for &Card {
 
     /// Return a card's text property, if it has it.
     /// Always returns Some.
-    fn get_text_property(&self, property: &Text) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<String> {
         Some(match property {
-            Text::Id => &self.id,
-            Text::Name => &self.name,
-            Text::Type => &self.r#type,
-            Text::Description => &self.description,
-            Text::FlavorText => &self.flavor_text,
+            Text::Id => self.id.to_string(),
+            Text::Name => self.name.to_string(),
+            Text::Type => self.r#type.to_string(),
+            Text::Description => self.description.to_string(),
+            Text::FlavorText => self.flavor_text.to_string(),
         })
     }
 
@@ -228,7 +229,7 @@ impl Read for &Card {
     }
 
     /// Return a card's description. Always returns Some. If the card has no description, it will return Some empty string.
-    fn get_description(&self) -> Option<&str> {
+    fn get_description(&self) -> Option<&RichString> {
         Some(&self.description)
     }
 
@@ -275,11 +276,11 @@ impl Read for CardId {
         }
     }
 
-    fn get_text_property(&self, property: &Text) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<String> {
         match property {
-            Text::Name => self.name.as_deref(),
-            Text::Type => self.r#type.as_deref(),
-            Text::Description => self.description.as_deref(),
+            Text::Name => self.name.as_deref().map(ToString::to_string),
+            Text::Type => self.r#type.as_deref().map(ToString::to_string),
+            Text::Description => self.description.as_ref().map(ToString::to_string),
             Text::FlavorText | Text::Id => None,
         }
     }
@@ -300,8 +301,8 @@ impl Read for CardId {
         self.name.as_deref()
     }
 
-    fn get_description(&self) -> Option<&str> {
-        self.description.as_deref()
+    fn get_description(&self) -> Option<&RichString> {
+        self.description.as_ref()
     }
 
     fn get_type(&self) -> Option<&str> {
@@ -344,11 +345,11 @@ impl Read for &CardId {
         }
     }
 
-    fn get_text_property(&self, property: &Text) -> Option<&str> {
+    fn get_text_property(&self, property: &Text) -> Option<String> {
         match property {
-            Text::Name => self.name.as_deref(),
-            Text::Type => self.r#type.as_deref(),
-            Text::Description => self.description.as_deref(),
+            Text::Name => self.name.as_deref().map(ToString::to_string),
+            Text::Type => self.r#type.as_deref().map(ToString::to_string),
+            Text::Description => self.description.as_ref().map(ToString::to_string),
             Text::FlavorText | Text::Id => None,
         }
     }
@@ -369,8 +370,8 @@ impl Read for &CardId {
         self.name.as_deref()
     }
 
-    fn get_description(&self) -> Option<&str> {
-        self.description.as_deref()
+    fn get_description(&self) -> Option<&RichString> {
+        self.description.as_ref()
     }
 
     fn get_type(&self) -> Option<&str> {
@@ -383,14 +384,14 @@ impl Read for &CardId {
 }
 
 /// Data structure for card identities. These card identities are slightly more general than the concept within the game, as they allow you to match things that are only relevant for searching cards.
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct CardId {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<RichString>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub keywords: Option<Vec<Keyword>>,
@@ -414,7 +415,7 @@ pub struct CardId {
 }
 
 /// A keyword may contain data. This data may be a string or a `CardID`.
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
     CardId(CardId),
@@ -422,7 +423,7 @@ pub enum KeywordData {
 }
 
 /// A card's Keyword.
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Keyword {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -1,0 +1,18 @@
+{
+  "id": "the_strange_deal",
+  "name": "The Strange Deal",
+  "description": [
+    [
+      "Pay 1 blood to deal 2 damage to any creature.",
+      "Shuffle a grand design vestige into your deck.",
+      "Add 2 points to the health pool."
+    ]
+  ],
+  "type": "creature saga",
+  "cost": 4,
+  "health": 2,
+  "defense": 1,
+  "power": 1,
+  "set": "Normality",
+  "legality": {}
+}

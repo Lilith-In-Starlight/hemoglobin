@@ -2,14 +2,14 @@ use std::fmt::Display;
 
 use crate::numbers::MaybeImprecise;
 
-use super::Keyword;
+use super::{rich_text::RichString, Keyword};
 
 /// This trait is used in card generics. It is useful when you want a function to accept `CardID`s and not only `Card`s.
 pub trait Read {
     /// Return a card's numeric property, if it has it.
     fn get_num_property(&self, property: &Number) -> Option<MaybeImprecise>;
     /// Return a card's text property, if it has it.
-    fn get_text_property(&self, property: &Text) -> Option<&str>;
+    fn get_text_property(&self, property: &Text) -> Option<String>;
     /// Return a card's array property, if it has it.
     fn get_vec_property(&self, property: &Array) -> Option<&[String]>;
     /// Return a card's keywords, if it has them. It may not have them if it is a `CardID`.
@@ -17,7 +17,7 @@ pub trait Read {
     /// Return a card's name, if it has one. It may not have one if it is a `CardID`.
     fn get_name(&self) -> Option<&str>;
     /// Return a card's text, if it has one. It may not have one if it is a `CardID`.
-    fn get_description(&self) -> Option<&str>;
+    fn get_description(&self) -> Option<&RichString>;
     /// Return a card's type, if it has one. It may not have one if it is a `CardID`.
     fn get_type(&self) -> Option<&str>;
     /// Return a card's kins, if it has them. It may not have them if it is a `CardID`.
