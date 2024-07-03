@@ -229,7 +229,7 @@ pub enum Sort {
 #[must_use]
 pub fn fuzzy(card: &impl Read, query: &str) -> bool {
     card.get_description()
-        .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
+        .is_some_and(|x| clean_ascii(&x.to_string()).contains(&clean_ascii(query)))
         || card
             .get_name()
             .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
@@ -253,6 +253,10 @@ fn clean_ascii(string: &str) -> String {
     let string = string.replace("ë", "e");
     let string = string.replace("ï", "i");
     let string = string.replace("ö", "o");
+    let string = string.replace('"', "");
+    let string = string.replace('\'', "");
+    let string = string.replace('.', "");
+    let string = string.replace(',', "");
     string.replace("ü", "u")
 }
 
@@ -374,7 +378,7 @@ where
                 let matches = card
                     .get_text_property(field)
                     .map_or(Ternary::Void, |property| {
-                        if clean_ascii(property).contains(&clean_ascii(contains)) {
+                        if clean_ascii(&property).contains(&clean_ascii(contains)) {
                             Ternary::True
                         } else {
                             Ternary::False
