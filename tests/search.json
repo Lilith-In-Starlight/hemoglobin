@@ -1,0 +1,74 @@
+[
+  {
+    "id": "eq 5",
+    "name": "eq 5",
+    "description": "",
+    "cost": 5,
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  },
+  {
+    "id": "gt 5",
+    "name": "gt 5",
+    "description": "",
+    "cost": ">5",
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  },
+  {
+    "id": "gteq 5",
+    "name": "gteq 5",
+    "description": "",
+    "cost": ">=5",
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  },
+  {
+    "id": "lt 5",
+    "name": "lt 5",
+    "description": "",
+    "cost": "<5",
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  },
+  {
+    "id": "lteq 5",
+    "name": "lteq 5",
+    "description": "",
+    "cost": "<=5",
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  },
+  {
+    "id": "neq 5",
+    "name": "neq 5",
+    "description": "",
+    "cost": "!=5",
+    "type": "creature",
+    "health": 0,
+    "defense": 0,
+    "power": 0,
+    "set": "",
+    "legality": {}
+  }
+]

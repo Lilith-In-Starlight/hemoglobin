@@ -13,44 +13,89 @@ pub mod search;
 
 #[cfg(test)]
 mod test {
-    use std::{fmt::Display, fs};
-
     use crate::{
         cards::Card,
-        search::{query_parser, search},
+        search::{query_parser::query_parser, search},
     };
 
-    struct PrintableCards<'a>(Vec<&'a Card>);
+    #[test]
+    fn test_equals_search() {
+        let cards: Vec<Card> = serde_json::from_str(
+            &std::fs::read_to_string("tests/search.json").expect("Couldn't load search.json"),
+        )
+        .expect("Couldn't convert search.json to a vec of cards");
+        for val in 4..=6 {
+            let result = search(
+                &query_parser(&format!("c={val}")).expect("couldn't parse query"),
+                cards.iter(),
+            );
 
-    impl<'a> Display for PrintableCards<'a> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            for card in &self.0 {
-                writeln!(f, "{card}")?;
-                writeln!(f)?;
-            }
-            Ok(())
+            let fail = match val {
+                4 => result
+                    .iter()
+                    .any(|x| x.name == "eq 5" || x.name == "gteq 5" || x.name == "gt 5"),
+                5 => result
+                    .iter()
+                    .any(|x| x.name == "lt 5" || x.name == "gt 5" || x.name == "neq 5"),
+                6 => result
+                    .iter()
+                    .any(|x| x.name == "lt 5" || x.name == "lteq 5" || x.name == "eq 5"),
+                _ => unreachable!(),
+            };
+
+            assert!(!fail);
         }
     }
 
     #[test]
-    fn test_search() {
-        let data =
-            fs::read_to_string("../hemolymph/server/cards.json").expect("Unable to read file");
-        let cards: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        let parsed = query_parser::query_parser("c!=2 n:default").unwrap();
-        println!("{parsed}");
-        // println!("{parsed:#?}");
-        let cards = PrintableCards(search(&parsed, cards.iter()));
-        println!("{cards}");
+    fn test_gt_search() {
+        let cards: Vec<Card> = serde_json::from_str(
+            &std::fs::read_to_string("tests/search.json").expect("Couldn't load search.json"),
+        )
+        .expect("Couldn't convert search.json to a vec of cards");
+        for val in 4..=6 {
+            let result = search(
+                &query_parser(&format!("c>{val}")).expect("couldn't parse query"),
+                cards.iter(),
+            );
+
+            let fail = match val {
+                4 => result.iter().any(|x| x.name == "lt 5"),
+                5 => result
+                    .iter()
+                    .any(|x| x.name == "lt 5" || x.name == "lteq 5" || x.name == "eq 5"),
+                6 => result
+                    .iter()
+                    .any(|x| x.name == "lt 5" || x.name == "lteq 5" || x.name == "eq 5"),
+                _ => unreachable!(),
+            };
+
+            assert!(!fail);
+        }
     }
 
     #[test]
-    fn test_serialize() {
-        let string =
-            fs::read_to_string("../hemolymph/server/cards.json").expect("Unable to read file");
-        let cards1: Vec<Card> = serde_json::from_str(&string).expect("Unable to parse JSON");
-        let data = serde_json::to_string_pretty(&cards1).unwrap();
-        let cards2: Vec<Card> = serde_json::from_str(&data).expect("Unable to parse JSON");
-        assert_eq!(cards1, cards2);
+    fn test_gteq_search() {
+        let cards: Vec<Card> = serde_json::from_str(
+            &std::fs::read_to_string("tests/search.json").expect("Couldn't load search.json"),
+        )
+        .expect("Couldn't convert search.json to a vec of cards");
+        for val in 4..=6 {
+            let result = search(
+                &query_parser(&format!("c>={val}")).expect("couldn't parse query"),
+                cards.iter(),
+            );
+
+            let fail = match val {
+                4 => false,
+                5 => result.iter().any(|x| x.name == "lt 5"),
+                6 => result
+                    .iter()
+                    .any(|x| x.name == "lt 5" || x.name == "lteq 5" || x.name == "eq 5"),
+                _ => unreachable!(),
+            };
+
+            assert!(!fail);
+        }
     }
 }
