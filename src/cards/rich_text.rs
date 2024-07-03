@@ -7,7 +7,7 @@ use serde::{
 use super::CardId;
 
 #[derive(Debug)]
-enum RichElement {
+pub enum RichElement {
     String(String),
     CardId { display: String, identity: CardId },
     SpecificCard { display: String, id: String },
@@ -16,7 +16,7 @@ enum RichElement {
 }
 
 #[derive(Debug, Serialize)]
-struct RichString {
+pub struct RichString {
     elements: Vec<RichElement>,
 }
 
@@ -96,7 +96,12 @@ impl<'de> Deserialize<'de> for RichElement {
                         "display" => display = map.next_value()?,
                         "identity" => identity = map.next_value()?,
                         "id" => id = map.next_value()?,
-                        field => return Err(serde::de::Error::unknown_field(field, &["display", "identity", "id"])),
+                        field => {
+                            return Err(serde::de::Error::unknown_field(
+                                field,
+                                &["display", "identity", "id"],
+                            ))
+                        }
                     }
                 }
 
