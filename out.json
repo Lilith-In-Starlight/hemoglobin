@@ -13,7 +13,7 @@
       {
         "name": "devours",
         "data": {
-          "type": "CardID",
+          "type": "CardId",
           "cost": "<2",
           "keywords": [
             {

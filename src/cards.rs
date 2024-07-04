@@ -414,7 +414,7 @@ pub struct CardId {
     pub functions: Option<Vec<String>>,
 }
 
-/// A keyword may contain data. This data may be a string or a `CardID`.
+/// A keyword may contain data. This data may be a string or a `CardId`.
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
@@ -443,7 +443,7 @@ impl Card {
 
 impl CardId {
     #[must_use]
-    /// Creates a vector of `QueryRestriction`s defined by the `CardID`.
+    /// Creates a vector of `QueryRestriction`s defined by the `CardId`.
     pub fn get_as_query(&self) -> Vec<QueryRestriction> {
         let mut restrictions = vec![];
 

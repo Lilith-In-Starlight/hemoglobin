@@ -1,41 +1,49 @@
 [
-    {
-        "id": "vampire_mantis",
-        "name": "Vampire Mantis",
-        "description": "Devours: Insect Kin with Bifurcated Strike\n\nUndead Kin\nBifurcated Strike\n\nWhen Killed: Gain one additional blood",
-        "cost": 3,
-        "type": "creature",
-        "health": 3,
-        "defense": 2,
-        "power": 2,
-        "kins": ["undead"],
-        "keywords": [
+  {
+    "id": "vampire_mantis",
+    "name": "Vampire Mantis",
+    "description": "Devours: Insect Kin with Bifurcated Strike\n\nUndead Kin\nBifurcated Strike\n\nWhen Killed: Gain one additional blood",
+    "cost": 3,
+    "type": "creature",
+    "health": 3,
+    "defense": 2,
+    "power": 2,
+    "kins": [
+      "undead"
+    ],
+    "keywords": [
+      {
+        "name": "devours",
+        "data": {
+          "type": "CardId",
+          "kins": [
+            "insect"
+          ],
+          "cost": "<2",
+          "keywords": [
             {
-                "name": "devours",
-                "data": {
-                    "type": "CardID",
-                    "kins": ["insect"],
-                    "cost": "<2",
-                    "keywords": [
-                        {
-                            "name": "bifurcated strike"
-                        }
-                    ]
-                }
-            },
-            {
-                "name": "bifurcated strike"
+              "name": "bifurcated strike"
             }
-        ],
-        "abilities": ["When Killed: Gain one additional blood."],
-        "artists": ["Katie Ampersand"],
-        "set": "The Forest",
-        "legality": {
-            "tournaments": "y",
-            "bloodful": "y",
-            "bloodless": "y"
-        },
-        "other": [], 
-        "functions": []
-    }
+          ]
+        }
+      },
+      {
+        "name": "bifurcated strike"
+      }
+    ],
+    "abilities": [
+      "When Killed: Gain one additional blood."
+    ],
+    "artists": [
+      "Katie Ampersand"
+    ],
+    "set": "The Forest",
+    "legality": {
+      "tournaments": "y",
+      "bloodful": "y",
+      "bloodless": "y"
+    },
+    "other": [],
+    "functions": []
+  }
 ]

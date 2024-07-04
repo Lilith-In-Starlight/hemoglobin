@@ -3,7 +3,7 @@
 
 //! Hemolymph is a library containing data structures and functions useful for the card game Bloodless. It is used by [Hemolymph](http://hemolymph.net), the official card search engine.
 //!
-//! The two datastructures are `Card`, which represents a card and `CardID`, which represents a card identity. Card identities in this library do not represent card identities as defined by the game's rules, but rather as a more general structure for identifying cards.
+//! The two datastructures are `Card`, which represents a card and `CardId`, which represents a card identity. Card identities in this library do not represent card identities as defined by the game's rules, but rather as a more general structure for identifying cards.
 //!
 //! This library contains the search functions used by Hemolymph.
 
