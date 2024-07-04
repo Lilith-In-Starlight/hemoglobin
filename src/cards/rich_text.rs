@@ -268,7 +268,7 @@ impl Serialize for RichElement {
             Self::CardSearch { display, search } => {
                 let mut map = serializer.serialize_struct("Search", 2)?;
                 map.serialize_field("display", display)?;
-                map.serialize_field("Search", search)?;
+                map.serialize_field("search", search)?;
                 map.end()
             }
             Self::Saga(strings) => {
