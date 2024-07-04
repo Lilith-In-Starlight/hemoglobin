@@ -1,6 +1,10 @@
 //! Bloodless card descriptions can use rich text instead of just Strings. This text may contain links to other cards, or represent a Saga.
 use super::CardId;
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    slice::{Iter, IterMut},
+    vec::IntoIter,
+};
 
 use serde::{
     de::Visitor,
@@ -10,7 +14,7 @@ use serde::{
 
 /// An element of `RichString`s
 #[derive(Debug, PartialEq, Eq, Clone)]
-enum RichElement {
+pub enum RichElement {
     String(String),
     CardId { display: String, identity: CardId },
     SpecificCard { display: String, id: String },
@@ -19,10 +23,54 @@ enum RichElement {
     LineBreak,
 }
 
-/// A rich text string
+/// A rich text string. This exists so I can make a serde implementation
 #[derive(Debug, Serialize, PartialEq, Eq, Clone, Default)]
 pub struct RichString {
     elements: Vec<RichElement>,
+}
+
+impl IntoIterator for RichString {
+    type Item = RichElement;
+
+    type IntoIter = IntoIter<RichElement>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a RichString {
+    type Item = &'a RichElement;
+
+    type IntoIter = Iter<'a, RichElement>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut RichString {
+    type Item = &'a mut RichElement;
+
+    type IntoIter = IterMut<'a, RichElement>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.elements.iter_mut()
+    }
+}
+
+impl RichString {
+    pub fn iter(&self) -> std::slice::Iter<'_, RichElement> {
+        self.into_iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, RichElement> {
+        self.into_iter()
+    }
+
+    pub fn push_string(&mut self, str: String) {
+        self.elements.push(RichElement::String(str));
+    }
 }
 
 impl Display for RichElement {
