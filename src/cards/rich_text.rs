@@ -1,3 +1,5 @@
+//! Bloodless card descriptions can use rich text instead of just Strings. This text may contain links to other cards, or represent a Saga.
+use super::CardId;
 use std::fmt::Display;
 
 use serde::{
@@ -6,8 +8,7 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use super::CardId;
-
+/// An element of `RichString`s
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum RichElement {
     String(String),
@@ -18,6 +19,7 @@ enum RichElement {
     LineBreak,
 }
 
+/// A rich text string
 #[derive(Debug, Serialize, PartialEq, Eq, Clone, Default)]
 pub struct RichString {
     elements: Vec<RichElement>,
