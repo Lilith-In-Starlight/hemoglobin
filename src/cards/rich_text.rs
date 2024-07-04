@@ -24,7 +24,7 @@ pub enum RichElement {
 }
 
 /// A rich text string. This exists so I can make a serde implementation
-#[derive(Debug, Serialize, PartialEq, Eq, Clone, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct RichString {
     elements: Vec<RichElement>,
 }
@@ -138,6 +138,25 @@ impl<'de> Deserialize<'de> for RichString {
             }
         }
         deserializer.deserialize_any(DeVisitor)
+    }
+}
+
+impl Serialize for RichString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.elements.first() {
+            Some(RichElement::String(x)) if self.elements.len() == 1 => serializer.serialize_str(x),
+            None => serializer.serialize_str(""),
+            _ => {
+                let mut seq = serializer.serialize_seq(Some(self.elements.len()))?;
+                for x in &self.elements {
+                    seq.serialize_element(&x)?;
+                }
+                seq.end()
+            }
+        }
     }
 }
 
