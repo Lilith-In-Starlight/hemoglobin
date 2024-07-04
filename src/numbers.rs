@@ -3,10 +3,13 @@ pub mod imprecise_ord;
 use std::{
     cmp::Ordering,
     fmt::{Debug, Display},
+    num::TryFromIntError,
 };
 
-use serde::{de::Error, Deserialize, Deserializer, Serialize};
-use serde_json::Value;
+use serde::{
+    de::{Error, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 
 use crate::search::{query_parser::text_comparison_parser, Ternary};
 
@@ -163,8 +166,7 @@ impl<'de> Deserialize<'de> for MaybeVar {
     where
         D: Deserializer<'de>,
     {
-        let value = Value::deserialize(deserializer)?;
-        deserialize_maybe_var::<D>(&value)
+        deserialize_maybe_var::<D>(deserializer)
     }
 }
 
@@ -173,44 +175,90 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
     where
         D: Deserializer<'de>,
     {
-        let value = Value::deserialize(deserializer)?;
-        if let Ok(x) = deserialize_maybe_var::<D>(&value) {
-            Ok(Self::Precise(x))
-        } else {
-            if let Some(text) = value.as_str() {
-                let comparison =
-                    text_comparison_parser(text).map_err(|x| Error::custom(format!("{x:#?}")))?;
-                return Ok(Self::Imprecise(comparison));
+        struct MiVisitor;
+        impl<'de> Visitor<'de> for MiVisitor {
+            type Value = MaybeImprecise;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("single character string or number")
             }
-            Err(Error::custom(
-                "Numbers that might be imprecise must be integers, single letters, or comparisons",
-            ))
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                str_as_maybe_var(v).map_or_else(
+                    || {
+                        text_comparison_parser(v).map_or_else(
+                            |_| Err(Error::custom("expected a bloodless number or a comparison")),
+                            |x| Ok(Self::Value::Imprecise(x)),
+                        )
+                    },
+                    |value| Ok(MaybeImprecise::Precise(value)),
+                )
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                u64_as_maybe_var(v).map(MaybeImprecise::Precise).map_err(|_| {
+                    E::custom(
+                        "converted from a value greater than the current architecture's pointer size",
+                    )
+                })
+            }
         }
+        deserializer.deserialize_any(MiVisitor)
     }
 }
 
-fn deserialize_maybe_var<'de, D: Deserializer<'de>>(value: &Value) -> Result<MaybeVar, D::Error> {
-    if let Some(text) = value.as_str() {
-        match text.chars().next() {
-            Some(char) if char.is_alphabetic() => return Ok(MaybeVar::Var(char)),
-            _ => {
-                return Err(Error::custom(
-                    "Numbers can only be single letters or integers",
-                ))
+fn deserialize_maybe_var<'de, D: Deserializer<'de>>(deserializer: D) -> Result<MaybeVar, D::Error> {
+    struct MvVisitor;
+    impl<'de> Visitor<'de> for MvVisitor {
+        type Value = MaybeVar;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("single character string or number")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            match v.chars().next() {
+                Some(char) if char.is_alphabetic() => Ok(MaybeVar::Var(char)),
+                _ => Err(Error::custom(
+                    "numbers can only be single letters or integers",
+                )),
             }
         }
-    }
-    if let Some(text) = value.as_u64() {
-        match text.try_into() {
-            Ok(number) => return Ok(MaybeVar::Const(number)),
-            Err(err) => {
-                return Err(Error::custom(format!(
-                    "Error while turning u64 into usize for a number: {err}"
-                )))
-            }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: Error,
+        {
+            u64_as_maybe_var(v).map_err(|_| {
+                E::custom(
+                    "converted from a value greater than the current architecture's pointer size",
+                )
+            })
         }
     }
-    Err(Error::custom(
-        "Numbers can only be single letters or integers",
-    ))
+
+    deserializer.deserialize_any(MvVisitor)
+}
+
+fn u64_as_maybe_var(v: u64) -> Result<MaybeVar, TryFromIntError> {
+    match v.try_into() {
+        Ok(number) => Ok(MaybeVar::Const(number)),
+        Err(x) => Err(x),
+    }
+}
+
+fn str_as_maybe_var(v: &str) -> Option<MaybeVar> {
+    v.chars()
+        .next()
+        .filter(|x| x.is_alphabetic())
+        .map(MaybeVar::Var)
 }

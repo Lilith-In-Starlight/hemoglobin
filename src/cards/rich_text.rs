@@ -216,10 +216,7 @@ impl Serialize for RichElement {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        cards::Card,
-        search::{self, query_parser},
-    };
+    use crate::{cards::Card, search};
 
     #[test]
     fn test_serialize() {
