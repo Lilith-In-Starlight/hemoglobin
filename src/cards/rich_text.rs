@@ -26,7 +26,7 @@ pub enum RichElement {
 /// A rich text string. This exists so I can make a serde implementation
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct RichString {
-    elements: Vec<RichElement>,
+    pub elements: Vec<RichElement>,
 }
 
 impl IntoIterator for RichString {

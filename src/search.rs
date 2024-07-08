@@ -16,6 +16,7 @@ use crate::{
         properties::{Array, Number, Read, Text},
         Keyword, KeywordData,
     },
+    clean_ascii,
     numbers::{Comparison, ImpreciseOrd},
 };
 
@@ -244,20 +245,6 @@ pub fn fuzzy(card: &impl Read, query: &str) -> bool {
             x.iter()
                 .any(|x| clean_ascii(&x.name).contains(&clean_ascii(query)))
         })
-}
-
-/// Only handles lowercase because it'll be applied after `to_lowercase`
-fn clean_ascii(string: &str) -> String {
-    let string = string.to_lowercase();
-    let string = string.replace("ä", "a");
-    let string = string.replace("ë", "e");
-    let string = string.replace("ï", "i");
-    let string = string.replace("ö", "o");
-    let string = string.replace('"', "");
-    let string = string.replace('\'', "");
-    let string = string.replace('.', "");
-    let string = string.replace(',', "");
-    string.replace("ü", "u")
 }
 
 /// The Cache for `devouredby` queries.

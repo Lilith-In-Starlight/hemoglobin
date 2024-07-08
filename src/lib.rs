@@ -11,6 +11,20 @@ pub mod cards;
 pub mod numbers;
 pub mod search;
 
+/// Only handles lowercase because it'll be applied after `to_lowercase`
+fn clean_ascii(string: &str) -> String {
+    let string = string.to_lowercase();
+    let string = string.replace("ä", "a");
+    let string = string.replace("ë", "e");
+    let string = string.replace("ï", "i");
+    let string = string.replace("ö", "o");
+    let string = string.replace('"', "");
+    let string = string.replace('\'', "");
+    let string = string.replace('.', "");
+    let string = string.replace(',', "");
+    string.replace("ü", "u")
+}
+
 #[cfg(test)]
 mod test {
     use crate::{

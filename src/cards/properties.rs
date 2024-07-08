@@ -51,7 +51,6 @@ impl Display for Number {
 pub enum Array {
     Functions,
     Kins,
-    Artists,
 }
 
 impl Display for Array {
@@ -59,7 +58,7 @@ impl Display for Array {
         match self {
             Self::Functions => write!(f, "Functions"),
             Self::Kins => write!(f, "Kins"),
-            Self::Artists => write!(f, "Artists"),
+            // Self::Artists => write!(f, "Artists"),
         }
     }
 }

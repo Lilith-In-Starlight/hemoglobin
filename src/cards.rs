@@ -4,14 +4,29 @@ use crate::cards::properties::Array;
 use crate::cards::properties::Number;
 use crate::cards::properties::Read;
 use crate::cards::properties::Text;
+use crate::clean_ascii;
 use crate::numbers::MaybeImprecise;
 use rand::prelude::SliceRandom;
+use rand::thread_rng;
 use rich_text::RichString;
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
 use crate::search::QueryRestriction;
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, Eq)]
+pub enum ImageSource {
+    Files(Vec<String>),
+    #[default]
+    CardName,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Default, Debug)]
+pub struct Image {
+    pub sources: ImageSource,
+    pub authors: Vec<String>,
+}
 
 /// Data structure for Cards. All fields are mandatory.
 #[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq, Default)]
@@ -22,7 +37,8 @@ pub struct Card {
     pub name: String,
     /// Image names that the card may use. If this is empty, the name is used to generate an image name.
     #[serde(default)]
-    pub img: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub images: Vec<Image>,
     /// The card's text, excluding cost, stats and typeline.
     pub description: RichString,
     /// The card's blood cost.
@@ -35,29 +51,34 @@ pub struct Card {
     pub power: MaybeImprecise,
     /// The card's type (as per the game).
     pub r#type: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     /// Keywords the card's text has.
     pub keywords: Vec<Keyword>,
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     /// Kins of the card, must include parent kins.
     pub kins: Vec<String>,
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     /// Will be used to provide an official interpretation of the card's text.
     pub abilities: Vec<String>,
     #[serde(default)]
-    /// Artists who made the card's art.
-    pub artists: Vec<String>,
+    #[serde(skip_serializing_if = "String::is_empty")]
     /// What set the card belongs to.
     pub set: String,
     /// Where is the card legal.
     pub legality: HashMap<String, String>,
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     /// Other tags you might add to the card.
     pub other: Vec<String>,
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     /// What the card can be used for.
     pub functions: Vec<String>,
     #[serde(default)]
+    #[serde(skip_serializing_if = "String::is_empty")]
     /// The card's flavor text
     pub flavor_text: String,
 }
@@ -130,7 +151,7 @@ impl Read for Card {
         Some(match property {
             Array::Functions => &self.functions,
             Array::Kins => &self.kins,
-            Array::Artists => &self.artists,
+            // Array::Artists => &self.artists,
         })
     }
 
@@ -213,7 +234,7 @@ impl Read for &Card {
         Some(match property {
             Array::Functions => &self.functions,
             Array::Kins => &self.kins,
-            Array::Artists => &self.artists,
+            // Array::Artists => &self.artists,
         })
     }
 
@@ -289,7 +310,7 @@ impl Read for CardId {
         match property {
             Array::Functions => self.functions.as_deref(),
             Array::Kins => self.kins.as_deref(),
-            Array::Artists => None,
+            // Array::Artists => None,
         }
     }
 
@@ -358,7 +379,7 @@ impl Read for &CardId {
         match property {
             Array::Functions => self.functions.as_deref(),
             Array::Kins => self.kins.as_deref(),
-            Array::Artists => None,
+            // Array::Artists => None,
         }
     }
 
@@ -433,11 +454,42 @@ pub struct Keyword {
 impl Card {
     /// Obtains a randomly selected image name from the `Card`'s img field. If it can't, it gets an image name based on its name.
     #[must_use]
-    pub fn get_image(&self) -> String {
-        self.img
-            .choose(&mut rand::thread_rng())
+    pub fn get_random_image_path(&self) -> String {
+        let rng = &mut rand::thread_rng();
+        self.images
+            .last()
+            .and_then(|x| match &x.sources {
+                ImageSource::Files(files) => files.choose(rng),
+                ImageSource::CardName => None,
+            })
             .cloned()
-            .unwrap_or_else(|| self.name.replace(' ', ""))
+            .unwrap_or_else(|| self.get_name_image_path())
+    }
+
+    /// Obtains the image matching the index. Gets the image matching the name if there's no image for that index in self.images
+    #[must_use]
+    pub fn get_image_path(&self, index: usize) -> String {
+        self.images
+            .get(index)
+            .and_then(|x| match &x.sources {
+                ImageSource::Files(files) => files.choose(&mut thread_rng()),
+                ImageSource::CardName => None,
+            })
+            .cloned()
+            .unwrap_or_else(|| self.get_name_image_path())
+    }
+
+    #[must_use]
+    pub fn get_name_image_path(&self) -> String {
+        clean_ascii(&self.name.replace(' ', ""))
+    }
+
+    #[must_use]
+    pub fn get_artists(&self) -> Vec<&String> {
+        self.images
+            .iter()
+            .flat_map(|x| -> &[String] { x.authors.as_ref() })
+            .collect()
     }
 }
 
