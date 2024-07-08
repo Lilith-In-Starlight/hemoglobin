@@ -14,6 +14,11 @@ pub mod search;
 /// Only handles lowercase because it'll be applied after `to_lowercase`
 fn clean_ascii(string: &str) -> String {
     let string = string.to_lowercase();
+    clean_ascii_keep_case(&string)
+}
+
+/// Only handles lowercase because it'll be applied after `to_lowercase`
+fn clean_ascii_keep_case(string: &str) -> String {
     let string = string.replace("ä", "a");
     let string = string.replace("ë", "e");
     let string = string.replace("ï", "i");

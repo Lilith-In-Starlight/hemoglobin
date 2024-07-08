@@ -4,7 +4,7 @@ use crate::cards::properties::Array;
 use crate::cards::properties::Number;
 use crate::cards::properties::Read;
 use crate::cards::properties::Text;
-use crate::clean_ascii;
+use crate::clean_ascii_keep_case;
 use crate::numbers::MaybeImprecise;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -481,7 +481,7 @@ impl Card {
 
     #[must_use]
     pub fn get_name_image_path(&self) -> String {
-        clean_ascii(&self.name.replace(' ', ""))
+        clean_ascii_keep_case(&self.name.replace(' ', ""))
     }
 
     #[must_use]
