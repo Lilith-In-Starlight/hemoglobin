@@ -22,7 +22,7 @@ pub enum ImageSource {
     CardName,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Default, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct Image {
     pub sources: ImageSource,
     pub authors: Vec<String>,
