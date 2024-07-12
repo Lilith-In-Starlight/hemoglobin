@@ -1,3 +1,4 @@
+pub mod functions;
 pub mod properties;
 pub mod rich_text;
 use crate::cards::properties::Array;
