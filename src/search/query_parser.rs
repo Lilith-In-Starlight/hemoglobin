@@ -322,7 +322,7 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
         "power" | "strength" | "damage" | "p" | "dmg" | "str" => {
             Ok(Properties::NumProperty(Number::Power))
         }
-        "defense" | "def" | "d" => Ok(Properties::NumProperty(Number::Defense)),
+        "defense" | "defence" | "def" | "d" => Ok(Properties::NumProperty(Number::Defense)),
         "kin" | "k" => Ok(Properties::ArrayProperty(Array::Kins)),
         "function" | "fun" | "fn" | "f" => Ok(Properties::ArrayProperty(Array::Functions)),
         "keyword" | "kw" => Ok(Properties::Keywords),
