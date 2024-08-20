@@ -27,6 +27,8 @@ fn clean_ascii_keep_case(string: &str) -> String {
     let string = string.replace('\'', "");
     let string = string.replace('.', "");
     let string = string.replace(',', "");
+    let string = string.replace('_', " ");
+    let string = string.replace('-', " ");
     string.replace('ü', "u")
 }
 
