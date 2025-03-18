@@ -176,7 +176,7 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
         D: Deserializer<'de>,
     {
         struct MiVisitor;
-        impl<'de> Visitor<'de> for MiVisitor {
+        impl Visitor<'_> for MiVisitor {
             type Value = MaybeImprecise;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -215,7 +215,7 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
 
 fn deserialize_maybe_var<'de, D: Deserializer<'de>>(deserializer: D) -> Result<MaybeVar, D::Error> {
     struct MvVisitor;
-    impl<'de> Visitor<'de> for MvVisitor {
+    impl Visitor<'_> for MvVisitor {
         type Value = MaybeVar;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

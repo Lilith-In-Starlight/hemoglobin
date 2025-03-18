@@ -5,7 +5,7 @@ use crate::{
     numbers::Comparison,
 };
 
-use super::{Errors, Ordering, Query, QueryRestriction, Sort, Ternary};
+use super::{Errors, Ordering, Query, QueryRestriction, Sort, Ternary, TextComparison};
 
 #[derive(Debug)]
 enum Token {
@@ -217,7 +217,10 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
         match word {
             Token::RegexParam(field, regex) => match get_property_from_name(field.as_str())? {
                 Properties::StringProperty(property) => {
-                    restrictions.push(QueryRestriction::Regex(property, regex.clone()));
+                    restrictions.push(QueryRestriction::TextComparison(
+                        property,
+                        TextComparison::Regex(regex.clone()),
+                    ));
                 }
                 _ => return Err(Errors::NonRegexable(field.clone())),
             },
@@ -261,10 +264,13 @@ fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
                 },
                 Properties::NumProperty(property) => {
                     let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::Comparison(property, cmp));
+                    restrictions.push(QueryRestriction::NumberComparison(property, cmp));
                 }
                 Properties::StringProperty(property) => {
-                    restrictions.push(QueryRestriction::Contains(property, value.clone()));
+                    restrictions.push(QueryRestriction::TextComparison(
+                        property,
+                        TextComparison::Contains(value.clone()),
+                    ));
                 }
                 Properties::ArrayProperty(property) => {
                     restrictions.push(QueryRestriction::Has(property, value.clone()));

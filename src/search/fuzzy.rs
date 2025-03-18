@@ -1,8 +1,8 @@
-use std::cmp::{max, max_by, Ordering};
+use std::cmp::{max_by, Ordering};
 
 use rust_fuzzy_search::fuzzy_compare;
 
-use crate::{cards::properties::Read, clean_ascii};
+use crate::cards::properties::Read;
 
 /// Compares a card's text with a given string and outputs a value for how much it matched the text, prioritizing in this order: Names, types, descriptions, kins, keywords.
 /// Notably, since a card's keywords are also in its description, keywords are ranked slightly higher than they are supposed to. This is not a huge deal, but it is a thing that might be good to be aware of.

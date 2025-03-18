@@ -155,15 +155,13 @@ impl Display for QueryRestriction {
             }
             Self::Fuzzy(text) => write!(f, "with \"{text}\" written on them"),
             Self::Devours(devourees) => write!(f, "that devour [{devourees}]"),
-            Self::Comparison(property, comparison) => {
+            Self::NumberComparison(property, comparison) => {
                 write!(f, "with {property} {comparison}")
             }
-            Self::Contains(property, text) => {
-                write!(f, "whose {property} contains \"{text}\"")
-            }
-            Self::Regex(property, regex) => {
-                write!(f, "whose {property} matches /{regex}/")
-            }
+            Self::TextComparison(property, text) => match text {
+                TextComparison::Contains(text) => write!(f, "whose {property} contains \"{text}\""),
+                TextComparison::Regex(regex) => write!(f, "whose {property} matches /{regex}/"),
+            },
             Self::Has(property, text) => match property {
                 Array::Functions => write!(f, "which can be used to \"{text}\""),
                 property => write!(f, "whose {property} have \"{text}\" among them"),
@@ -181,15 +179,20 @@ impl Display for QueryRestriction {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum TextComparison {
+    Contains(String),
+    Regex(Regex),
+}
+
 /// Represents a specific restriction that a `Query` will apply to cards.
 #[derive(Debug, Clone)]
 pub enum QueryRestriction {
     Fuzzy(String),
     Devours(Query),
     DevouredBy(Query),
-    Comparison(Number, Comparison),
-    Contains(Text, String),
-    Regex(Text, Regex),
+    NumberComparison(Number, Comparison),
+    TextComparison(Text, TextComparison),
     Has(Array, String),
     HasKw(String),
     Not(Query),
@@ -306,7 +309,9 @@ where
     results
 }
 
-/// This function checks whether a `card` matches a specific `query`'s restrictions. Since `devouredby` queries always require two searches, the results of the first search are stored in a `cache` that is internally mutable. This cache is only ever mutated the first time a devouredby query is executed.
+/// Checks whether a `card` matches a specific `query`'s restrictions.
+///
+/// Since `devouredby` queries always require two searches, the results of the first search are stored in a `cache` that is internally mutable. This cache is only ever mutated the first time a devouredby query is executed.
 /// The sum total of available `cards` is passed in order to perform searches. This function clones these cards, so this value should be an Iterator.
 #[allow(clippy::too_many_lines)]
 pub fn matches_query<'a, 'b, C, T, I>(
@@ -324,19 +329,33 @@ where
     let mut filtered = Ternary::True;
     for res in &query.restrictions {
         match res {
-            QueryRestriction::Regex(property, regex) => {
-                let matches = {
-                    card.get_text_property(property)
-                        .map_or(Ternary::Void, |value| {
-                            if regex.is_match(&value.to_lowercase()) {
-                                Ternary::True
-                            } else {
-                                Ternary::False
-                            }
-                        })
-                };
-                filtered = filtered.and(matches);
-            }
+            QueryRestriction::TextComparison(property, comparison) => match comparison {
+                TextComparison::Contains(contains) => {
+                    let matches =
+                        card.get_text_property(property)
+                            .map_or(Ternary::Void, |property| {
+                                if clean_ascii(&property).contains(&clean_ascii(contains)) {
+                                    Ternary::True
+                                } else {
+                                    Ternary::False
+                                }
+                            });
+                    filtered = filtered.and(matches);
+                }
+                TextComparison::Regex(regex) => {
+                    let matches = {
+                        card.get_text_property(property)
+                            .map_or(Ternary::Void, |value| {
+                                if regex.is_match(&value.to_lowercase()) {
+                                    Ternary::True
+                                } else {
+                                    Ternary::False
+                                }
+                            })
+                    };
+                    filtered = filtered.and(matches);
+                }
+            },
             QueryRestriction::Xor(group1, group2) => {
                 let res1 = matches_query(card, group1, cards, cache);
                 let res2 = matches_query(card, group2, cards, cache);
@@ -358,20 +377,8 @@ where
                     Ternary::False
                 });
             }
-            QueryRestriction::Comparison(field, comparison) => {
+            QueryRestriction::NumberComparison(field, comparison) => {
                 filtered = filtered.and(comparison.compare(&card.get_num_property(field)));
-            }
-            QueryRestriction::Contains(field, contains) => {
-                let matches = card
-                    .get_text_property(field)
-                    .map_or(Ternary::Void, |property| {
-                        if clean_ascii(&property).contains(&clean_ascii(contains)) {
-                            Ternary::True
-                        } else {
-                            Ternary::False
-                        }
-                    });
-                filtered = filtered.and(matches);
             }
             QueryRestriction::Has(field, thing) => {
                 let matches = match_in_vec(card.get_vec_property(field), |text| {

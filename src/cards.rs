@@ -6,6 +6,7 @@ use crate::cards::properties::Read;
 use crate::cards::properties::Text;
 use crate::clean_ascii_keep_case;
 use crate::numbers::MaybeImprecise;
+use crate::search::TextComparison;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rich_text::RichString;
@@ -500,7 +501,10 @@ impl CardId {
         let mut restrictions = vec![];
 
         if let Some(name) = &self.name {
-            restrictions.push(QueryRestriction::Contains(Text::Name, name.clone()));
+            restrictions.push(QueryRestriction::TextComparison(
+                Text::Name,
+                TextComparison::Contains(name.clone()),
+            ));
         }
 
         if let Some(kins) = &self.kins {
@@ -516,28 +520,28 @@ impl CardId {
         }
 
         if let Some(cost) = &self.cost {
-            restrictions.push(QueryRestriction::Comparison(
+            restrictions.push(QueryRestriction::NumberComparison(
                 Number::Cost,
                 cost.as_comparison(),
             ));
         }
 
         if let Some(health) = &self.health {
-            restrictions.push(QueryRestriction::Comparison(
+            restrictions.push(QueryRestriction::NumberComparison(
                 Number::Health,
                 health.as_comparison(),
             ));
         }
 
         if let Some(power) = &self.power {
-            restrictions.push(QueryRestriction::Comparison(
+            restrictions.push(QueryRestriction::NumberComparison(
                 Number::Power,
                 power.as_comparison(),
             ));
         }
 
         if let Some(defense) = &self.defense {
-            restrictions.push(QueryRestriction::Comparison(
+            restrictions.push(QueryRestriction::NumberComparison(
                 Number::Defense,
                 defense.as_comparison(),
             ));
