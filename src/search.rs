@@ -160,7 +160,10 @@ impl Display for QueryRestriction {
             }
             Self::TextComparison(property, text) => match text {
                 TextComparison::Contains(text) => write!(f, "whose {property} contains \"{text}\""),
-                TextComparison::Regex(regex) => write!(f, "whose {property} matches /{regex}/"),
+                TextComparison::HasMatch(regex) => write!(f, "whose {property} matches /{regex}/"),
+                TextComparison::EqualTo(text) => {
+                    write!(f, "whose {property} is equal to \"{text}\"")
+                }
             },
             Self::Has(property, text) => match property {
                 Array::Functions => write!(f, "which can be used to \"{text}\""),
@@ -182,7 +185,8 @@ impl Display for QueryRestriction {
 #[derive(Debug, Clone)]
 pub enum TextComparison {
     Contains(String),
-    Regex(Regex),
+    EqualTo(String),
+    HasMatch(Regex),
 }
 
 /// Represents a specific restriction that a `Query` will apply to cards.
@@ -330,6 +334,19 @@ where
     for res in &query.restrictions {
         match res {
             QueryRestriction::TextComparison(property, comparison) => match comparison {
+                TextComparison::EqualTo(text) => {
+                    let matches =
+                        card.get_text_property(property)
+                            .map_or(Ternary::Void, |property| {
+                                if clean_ascii(&property) == clean_ascii(text) {
+                                    Ternary::True
+                                } else {
+                                    Ternary::False
+                                }
+                            });
+
+                    filtered = filtered.and(matches);
+                }
                 TextComparison::Contains(contains) => {
                     let matches =
                         card.get_text_property(property)
@@ -342,7 +359,7 @@ where
                             });
                     filtered = filtered.and(matches);
                 }
-                TextComparison::Regex(regex) => {
+                TextComparison::HasMatch(regex) => {
                     let matches = {
                         card.get_text_property(property)
                             .map_or(Ternary::Void, |value| {
@@ -408,7 +425,8 @@ where
                 let matches = match_in_vec(card.get_keywords(), |keyword| {
                     if keyword.name == "devours" {
                         if let Some(KeywordData::CardId(ref devoured_id)) = keyword.data {
-                            matches_query(&devoured_id, query, cards, cache) == Ternary::True
+                            matches_query(devoured_id.as_ref(), query, cards, cache)
+                                == Ternary::True
                         } else {
                             false
                         }

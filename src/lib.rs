@@ -34,7 +34,7 @@ fn clean_ascii_keep_case(string: &str) -> String {
 mod test {
     use crate::{
         cards::Card,
-        search::{query_parser::query_parser, search},
+        search::{query_parser::parse_query, search},
     };
 
     #[test]
@@ -45,7 +45,7 @@ mod test {
         .expect("Couldn't convert search.json to a vec of cards");
         for val in 4..=6 {
             let result = search(
-                &query_parser(&format!("c={val}")).expect("couldn't parse query"),
+                &parse_query(&format!("c={val}")).expect("couldn't parse query"),
                 cards.iter(),
             );
 
@@ -74,7 +74,7 @@ mod test {
         .expect("Couldn't convert search.json to a vec of cards");
         for val in 4..=6 {
             let result = search(
-                &query_parser(&format!("c>{val}")).expect("couldn't parse query"),
+                &parse_query(&format!("c>{val}")).expect("couldn't parse query"),
                 cards.iter(),
             );
 
@@ -101,7 +101,7 @@ mod test {
         .expect("Couldn't convert search.json to a vec of cards");
         for val in 4..=6 {
             let result = search(
-                &query_parser(&format!("c>={val}")).expect("couldn't parse query"),
+                &parse_query(&format!("c>={val}")).expect("couldn't parse query"),
                 cards.iter(),
             );
 

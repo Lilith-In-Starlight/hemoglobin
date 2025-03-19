@@ -16,9 +16,18 @@ use serde::{
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RichElement {
     String(String),
-    CardId { display: String, identity: CardId },
-    SpecificCard { display: String, id: String },
-    CardSearch { display: String, search: String },
+    CardId {
+        display: String,
+        identity: Box<CardId>,
+    },
+    SpecificCard {
+        display: String,
+        id: String,
+    },
+    CardSearch {
+        display: String,
+        search: String,
+    },
     Saga(Vec<RichString>),
     LineBreak,
 }
@@ -300,13 +309,13 @@ mod test {
     #[test]
     fn test_real_cards() {
         let card: Vec<Card> = serde_json::from_str(
-            &std::fs::read_to_string("../hemolymph/server/cards.json")
+            &std::fs::read_to_string("../hemolymph-static/files/cards.json")
                 .expect("Couldn't load the real cards.json"),
         )
         .expect("Couldn't convert the real cards.json to a card");
 
         let card = search::search(
-            &search::query_parser::query_parser("shuffle a grand design").unwrap(),
+            &search::query_parser::parse_query("shuffle a grand design").unwrap(),
             card.iter(),
         );
 

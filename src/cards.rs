@@ -440,7 +440,7 @@ pub struct CardId {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum KeywordData {
-    CardId(CardId),
+    CardId(Box<CardId>),
     String(String),
 }
 
@@ -503,7 +503,7 @@ impl CardId {
         if let Some(name) = &self.name {
             restrictions.push(QueryRestriction::TextComparison(
                 Text::Name,
-                TextComparison::Contains(name.clone()),
+                TextComparison::EqualTo(name.clone()),
             ));
         }
 

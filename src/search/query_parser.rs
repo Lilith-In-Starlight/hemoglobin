@@ -1,3 +1,9 @@
+use chumsky::{
+    error::Simple,
+    prelude::{choice, end, filter, just, recursive},
+    text::{ident, keyword, TextParser},
+    Parser,
+};
 use regex::Regex;
 
 use crate::{
@@ -5,314 +11,7 @@ use crate::{
     numbers::Comparison,
 };
 
-use super::{Errors, Ordering, Query, QueryRestriction, Sort, Ternary, TextComparison};
-
-#[derive(Debug)]
-enum Token {
-    Word(String),
-    Param(String, String),
-    RegexParam(String, Regex),
-    SuperParam(String, Vec<Token>),
-    Not(Vec<Token>),
-    LenientNot(Vec<Token>),
-    Group(Vec<Token>),
-    Or(Vec<Token>, Option<Vec<Token>>),
-    Xor(Vec<Token>, Option<Vec<Token>>),
-}
-
-impl Token {
-    fn polar_wrap(self, polarity: Ternary) -> Self {
-        match polarity {
-            Ternary::True => self,
-            Ternary::False => Self::Not(vec![self]),
-            Ternary::Void => Self::LenientNot(vec![self]),
-        }
-    }
-}
-
-enum TokenMode {
-    Word,
-    Param(String),
-    RegexParam(String),
-    QParam(String),
-    SParam(String),
-    Group,
-}
-
-#[derive(Default)]
-struct TokenStack {
-    tokens: Vec<Token>,
-}
-
-impl TokenStack {
-    fn push(&mut self, token: Token) {
-        match (token, self.pop()) {
-            (a, None) => self.tokens.push(a),
-            (a, Some(Token::Or(b, None))) => {
-                self.tokens.push(Token::Or(b, Some(vec![a])));
-            }
-            (a, Some(Token::Xor(b, None))) => {
-                self.tokens.push(Token::Xor(b, Some(vec![a])));
-            }
-            (a, Some(b)) => {
-                self.tokens.push(b);
-                self.tokens.push(a);
-            }
-        }
-    }
-
-    fn pop(&mut self) -> Option<Token> {
-        self.tokens.pop()
-    }
-}
-
-enum CharOrEnd {
-    Char(char),
-    End,
-}
-
-#[allow(clippy::too_many_lines)]
-fn tokenize_query(q: &str) -> Result<Vec<Token>, Errors> {
-    let mut tokens = TokenStack::default();
-    let mut word = String::new();
-    let mut mode = TokenMode::Word;
-    let mut paren_count = 0;
-    let mut polarity = Ternary::True;
-    for ch in q.chars().map(CharOrEnd::Char).chain(vec![CharOrEnd::End]) {
-        match mode {
-            TokenMode::Word => match ch {
-                CharOrEnd::Char('-') => match polarity {
-                    Ternary::True => polarity = Ternary::False,
-                    Ternary::False => polarity = Ternary::Void,
-                    Ternary::Void => return Err(Errors::InvalidPolarity),
-                },
-                CharOrEnd::Char('(') if word.is_empty() => {
-                    mode = TokenMode::Group;
-                }
-                CharOrEnd::Char(' ') | CharOrEnd::End => {
-                    match word.as_str() {
-                        "" => (),
-                        "OR" => {
-                            let top = tokens.pop().ok_or(Errors::InvalidOr)?;
-                            tokens.push(Token::Or(vec![top], None));
-                        }
-                        "XOR" => {
-                            let top = tokens.pop().ok_or(Errors::InvalidOr)?;
-                            tokens.push(Token::Xor(vec![top], None));
-                        }
-                        _ => {
-                            tokens.push(Token::Word(word).polar_wrap(polarity));
-                        }
-                    }
-                    polarity = Ternary::True;
-                    word = String::new();
-                }
-                CharOrEnd::Char(':') => {
-                    if word.is_empty() {
-                        return Err(Errors::AttemptedEmptyParamName);
-                    }
-                    mode = TokenMode::Param(word);
-                    word = String::new();
-                }
-                CharOrEnd::Char(ch @ ('<' | '!' | '>' | '=')) => {
-                    if word.is_empty() {
-                        return Err(Errors::AttemptedEmptyParamName);
-                    }
-                    mode = TokenMode::Param(word);
-                    word = String::from(ch);
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-            },
-            TokenMode::Param(ref param) => match ch {
-                CharOrEnd::Char(' ') | CharOrEnd::End => {
-                    let tok = Token::Param(param.to_string(), word);
-                    tokens.push(tok.polar_wrap(polarity));
-                    polarity = Ternary::True;
-                    word = String::new();
-                    mode = TokenMode::Word;
-                }
-                CharOrEnd::Char('"') if word.is_empty() => {
-                    mode = TokenMode::QParam(param.to_string());
-                }
-                CharOrEnd::Char('/') if word.is_empty() => {
-                    mode = TokenMode::RegexParam(param.to_string());
-                }
-                CharOrEnd::Char('(') if word.is_empty() => {
-                    mode = TokenMode::SParam(param.to_string());
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-            },
-            TokenMode::RegexParam(ref param) => match ch {
-                CharOrEnd::End | CharOrEnd::Char('/') => {
-                    let tok = Token::RegexParam(
-                        param.to_string(),
-                        Regex::new(&word.to_lowercase()).map_err(Errors::RegexErr)?,
-                    );
-                    tokens.push(tok.polar_wrap(polarity));
-                    polarity = Ternary::True;
-                    word = String::new();
-                    mode = TokenMode::Word;
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-            },
-            TokenMode::QParam(ref param) => match ch {
-                CharOrEnd::Char('"') => {
-                    let tok = Token::Param(param.to_string(), word);
-                    tokens.push(tok.polar_wrap(polarity));
-                    polarity = Ternary::True;
-                    word = String::new();
-                    mode = TokenMode::Word;
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-                CharOrEnd::End => return Err(Errors::UnclosedString),
-            },
-            TokenMode::SParam(ref param) => match ch {
-                CharOrEnd::Char(')') if paren_count == 0 => {
-                    let tok = Token::SuperParam(param.to_string(), tokenize_query(&word)?);
-                    tokens.push(tok.polar_wrap(polarity));
-                    polarity = Ternary::True;
-                    word = String::new();
-                    mode = TokenMode::Word;
-                }
-                CharOrEnd::Char(ch @ '(') => {
-                    paren_count += 1;
-                    word.push(ch);
-                }
-                CharOrEnd::Char(ch @ ')') if paren_count > 0 => {
-                    paren_count -= 1;
-                    word.push(ch);
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-                CharOrEnd::End => return Err(Errors::UnclosedRegex),
-            },
-            TokenMode::Group => match ch {
-                CharOrEnd::Char(')') if paren_count == 0 => {
-                    let tok = Token::Group(tokenize_query(&word)?);
-                    tokens.push(tok.polar_wrap(polarity));
-                    polarity = Ternary::True;
-                    word = String::new();
-                    mode = TokenMode::Word;
-                }
-                CharOrEnd::Char(ch @ '(') => {
-                    paren_count += 1;
-                    word.push(ch);
-                }
-                CharOrEnd::Char(ch @ ')') if paren_count > 0 => {
-                    paren_count -= 1;
-                    word.push(ch);
-                }
-                CharOrEnd::Char(ch) => word.push(ch),
-                CharOrEnd::End => return Err(Errors::UnclosedSubquery),
-            },
-        }
-    }
-    Ok(tokens.tokens)
-}
-
-fn parse_tokens(q: &[Token]) -> Result<Query, Errors> {
-    let mut restrictions = vec![];
-    let mut name = String::new();
-    let mut sort = Sort::Fuzzy;
-    for word in q {
-        match word {
-            Token::RegexParam(field, regex) => match get_property_from_name(field.as_str())? {
-                Properties::StringProperty(property) => {
-                    restrictions.push(QueryRestriction::TextComparison(
-                        property,
-                        TextComparison::Regex(regex.clone()),
-                    ));
-                }
-                _ => return Err(Errors::NonRegexable(field.clone())),
-            },
-            Token::Or(group1, group2) => match group2 {
-                None => return Err(Errors::InvalidOr),
-                Some(group2) => {
-                    let mut group1 = parse_tokens(group1)?;
-                    group1.sort = Sort::None;
-                    let mut group2 = parse_tokens(group2)?;
-                    group2.sort = Sort::None;
-                    restrictions.push(QueryRestriction::Or(group1, group2));
-                }
-            },
-            Token::Xor(group1, group2) => match group2 {
-                None => return Err(Errors::InvalidOr),
-                Some(group2) => {
-                    let mut group1 = parse_tokens(group1)?;
-                    group1.sort = Sort::None;
-                    let mut group2 = parse_tokens(group2)?;
-                    group2.sort = Sort::None;
-                    restrictions.push(QueryRestriction::Xor(group1, group2));
-                }
-            },
-            Token::Group(group) => {
-                let mut group = parse_tokens(group)?;
-                group.sort = Sort::None;
-                restrictions.push(QueryRestriction::Group(group));
-            }
-            Token::Word(x) => {
-                name.push_str(x);
-                name.push(' ');
-            }
-            Token::Param(param, value) => match get_property_from_name(param)? {
-                Properties::Sort(order) => match get_property_from_name(value)? {
-                    Properties::NumProperty(property) => sort = Sort::Numeric(property, order),
-                    Properties::StringProperty(property) => {
-                        sort = Sort::Alphabet(property, order);
-                    }
-
-                    _ => return Err(Errors::NotSortable),
-                },
-                Properties::NumProperty(property) => {
-                    let cmp = text_comparison_parser(value)?;
-                    restrictions.push(QueryRestriction::NumberComparison(property, cmp));
-                }
-                Properties::StringProperty(property) => {
-                    restrictions.push(QueryRestriction::TextComparison(
-                        property,
-                        TextComparison::Contains(value.clone()),
-                    ));
-                }
-                Properties::ArrayProperty(property) => {
-                    restrictions.push(QueryRestriction::Has(property, value.clone()));
-                }
-                Properties::Keywords => restrictions.push(QueryRestriction::HasKw(value.clone())),
-            },
-            Token::SuperParam(param, value) => match param.as_str() {
-                "devours" | "dev" | "de" | "devs" => {
-                    let mut parsed_subquery = parse_tokens(value)?;
-                    parsed_subquery.sort = Sort::None;
-                    restrictions.push(QueryRestriction::Devours(parsed_subquery));
-                }
-                "devouredby" | "devby" | "deby" | "dby" | "db" => {
-                    let mut parsed_subquery = parse_tokens(value)?;
-                    parsed_subquery.sort = Sort::None;
-                    restrictions.push(QueryRestriction::DevouredBy(parsed_subquery));
-                    // devoured_by = Some(Box::new(parsed_subquery));
-                }
-                par => return Err(Errors::UnknownSubQueryParam(par.to_owned())),
-            },
-            Token::Not(tokens) => {
-                let mut group = parse_tokens(tokens)?;
-                group.sort = Sort::None;
-                restrictions.push(QueryRestriction::Not(group));
-            }
-            Token::LenientNot(tokens) => {
-                let mut group = parse_tokens(tokens)?;
-                group.sort = Sort::None;
-                restrictions.push(QueryRestriction::LenientNot(group));
-            }
-        }
-    }
-    let name = name.trim().to_string();
-    if !name.is_empty() {
-        restrictions.push(QueryRestriction::Fuzzy(name.clone()));
-    }
-    Ok(Query {
-        name,
-        restrictions,
-        sort,
-    })
-}
+use super::{Errors, Ordering, Query, QueryRestriction, Sort, TextComparison};
 
 /// # Errors
 /// When `str` is not a valid property query name
@@ -344,14 +43,6 @@ pub enum Properties {
     ArrayProperty(Array),
     Sort(Ordering),
     Keywords,
-}
-
-/// A parser for string search queries.
-/// # Errors
-/// Whenever a query cannot be parsed
-pub fn query_parser(q: &str) -> Result<Query, Errors> {
-    let q = tokenize_query(q)?;
-    parse_tokens(&q)
 }
 
 pub(crate) fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
@@ -388,4 +79,305 @@ pub(crate) fn text_comparison_parser(s: &str) -> Result<Comparison, Errors> {
         },
         |x| Ok(Comparison::Equal(x)),
     )
+}
+
+enum TextComparable {
+    String(String),
+    Regex(Regex),
+}
+
+/// Parses a query.
+/// # Errors
+/// If the parser fails.
+pub fn parse_query(string: &str) -> Result<Query, Vec<Simple<char>>> {
+    let parser = make_query_parser();
+    parser.parse(string)
+}
+
+#[allow(clippy::too_many_lines)]
+fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
+    let name_property = choice((keyword("name"), keyword("n"))).map(|()| Text::Name);
+    let id_property = keyword("id").map(|()| Text::Id);
+    let type_property = choice((keyword("type"), keyword("t"))).map(|()| Text::Id);
+    let description_property = choice((keyword("description"), keyword("desc"), keyword("dc")))
+        .map(|()| Text::Description);
+    let flavor_text_property =
+        choice((keyword("flavor_text"), keyword("ft"))).map(|()| Text::FlavorText);
+
+    let s_text_property = choice((
+        name_property,
+        id_property,
+        type_property,
+        description_property,
+        flavor_text_property,
+    ))
+    .padded();
+
+    let ascending =
+        choice((keyword("ASCENDING"), keyword("ASC"), keyword("A"))).map(|()| Ordering::Ascending);
+    let descending =
+        choice((keyword("DESCENDING"), keyword("DES"), keyword("D"))).map(|()| Ordering::Ascending);
+    let sort_dir = choice((
+        ascending.map(|_| Ordering::Ascending),
+        descending.map(|_| Ordering::Ascending),
+    ))
+    .padded();
+
+    let cost_property = choice((keyword("c"), keyword("cost"))).map(|()| Number::Cost);
+    let strength_property = choice((
+        keyword("s"),
+        keyword("p"),
+        keyword("strenght"),
+        keyword("power"),
+    ))
+    .map(|()| Number::Power);
+    let defense_property =
+        choice((keyword("d"), keyword("defense"), keyword("def"))).map(|()| Number::Defense);
+    let health_property =
+        choice((keyword("h"), keyword("hp"), keyword("health"))).map(|()| Number::Health);
+
+    let s_num_property = choice((
+        cost_property,
+        strength_property,
+        defense_property,
+        health_property,
+    ))
+    .padded();
+
+    let sortable_property = choice((
+        s_num_property.clone().map(Properties::NumProperty),
+        s_text_property.clone().map(Properties::StringProperty),
+    ));
+
+    let sort_expr = keyword("SORT")
+        .padded()
+        .ignore_then(sort_dir)
+        .then_ignore(keyword("BY").padded())
+        .then(sortable_property)
+        .map(|(ordering, property)| match property {
+            Properties::StringProperty(property) => Sort::Alphabet(property, ordering),
+            Properties::NumProperty(property) => Sort::Numeric(property, ordering),
+            _ => unreachable!("The parser is incapable of representing this state."),
+        });
+
+    let num_property = s_num_property.clone();
+    let text_property = s_text_property.clone();
+
+    recursive(|query_rec| {
+        let devours_property = choice((keyword("devours"), keyword("dev"), keyword("dv"))).padded();
+        let devours_compare = devours_property
+            .ignore_then(just(':'))
+            .ignore_then(query_rec.clone().delimited_by(just('('), just(')')))
+            .map(QueryRestriction::Devours);
+
+        let devoured_by_property = choice((keyword("devoured_by"), keyword("dby"))).padded();
+        let devoured_by_compare = devoured_by_property
+            .ignore_then(just(':'))
+            .ignore_then(query_rec.clone().delimited_by(just('('), just(')')))
+            .map(QueryRestriction::DevouredBy);
+
+        let quoted_text = filter(|a| char::is_alphanumeric(*a))
+            .repeated()
+            .collect()
+            .delimited_by(just('"'), just('"'));
+
+        let regex = filter(|a| char::is_alphanumeric(*a))
+            .repeated()
+            .collect()
+            .delimited_by(just('/'), just('/'))
+            .map(|x: String| Regex::new(&x));
+
+        let text_comparable = choice((
+            ident().map(TextComparable::String),
+            quoted_text.map(TextComparable::String),
+            regex
+                .try_map(|x, span| x.map_err(|err| Simple::custom(span, format!("{err}"))))
+                .map(TextComparable::Regex),
+        ));
+
+        let text_comparison_symbol = choice((
+            just('=').map(|_| TextComparisonSymbol::Equals),
+            just(':').map(|_| TextComparisonSymbol::Contains),
+        ))
+        .padded();
+
+        let text_comparison =
+            text_comparison_symbol
+                .padded()
+                .then(text_comparable)
+                .map(|(comparison, compared)| match compared {
+                    TextComparable::String(text) => match comparison {
+                        TextComparisonSymbol::Contains => TextComparison::Contains(text),
+                        TextComparisonSymbol::Equals => TextComparison::EqualTo(text),
+                    },
+                    TextComparable::Regex(regex) => TextComparison::HasMatch(regex),
+                });
+
+        let text_property_comparison = text_property
+            .then(text_comparison)
+            .map(|(property, comparison)| QueryRestriction::TextComparison(property, comparison));
+
+        let nat_number = filter(|x: &char| x.is_numeric())
+            .repeated()
+            .at_least(1)
+            .collect()
+            .try_map(|text: String, span| {
+                text.parse::<usize>()
+                    .map_err(|err| Simple::custom(span, format!("{err}")))
+            })
+            .padded();
+
+        let number_comparison_symbol = choice((
+            just(">=").map(|_| NumberComparisonSymbol::GreaterThanOrEqual),
+            just("<=").map(|_| NumberComparisonSymbol::LessThanOrEqual),
+            just('>').map(|_| NumberComparisonSymbol::GreaterThan),
+            just('<').map(|_| NumberComparisonSymbol::LessThan),
+            just("!=").map(|_| NumberComparisonSymbol::NotEqual),
+            just("=").map(|_| NumberComparisonSymbol::Equal),
+            just(":").map(|_| NumberComparisonSymbol::Equal),
+        ))
+        .padded();
+
+        let number_comparison = number_comparison_symbol
+            .then(nat_number)
+            .map(|(comp, num)| match comp {
+                NumberComparisonSymbol::GreaterThan => Comparison::GreaterThan(num),
+                NumberComparisonSymbol::LessThan => Comparison::LowerThan(num),
+                NumberComparisonSymbol::GreaterThanOrEqual => Comparison::GreaterThanOrEqual(num),
+                NumberComparisonSymbol::LessThanOrEqual => Comparison::LowerThanOrEqual(num),
+                NumberComparisonSymbol::Equal => Comparison::Equal(num),
+                NumberComparisonSymbol::NotEqual => Comparison::NotEqual(num),
+            });
+
+        let number_property_comparison = num_property
+            .then(number_comparison)
+            .map(|(property, comparison)| QueryRestriction::NumberComparison(property, comparison));
+
+        let fuzzy_text = choice((
+            filter(|x: &char| x.is_ascii_alphanumeric())
+                .repeated()
+                .at_least(1)
+                .collect(),
+            quoted_text,
+        ))
+        .map(QueryRestriction::Fuzzy);
+
+        let or_expressions = query_rec
+            .clone()
+            .then_ignore(keyword("OR"))
+            .then(query_rec.clone())
+            .delimited_by(just('(').padded(), just(')').padded())
+            .map(|(left, right)| QueryRestriction::Or(left, right));
+
+        let xor_expressions = query_rec
+            .clone()
+            .then_ignore(keyword("XOR"))
+            .then(query_rec.clone())
+            .delimited_by(just('(').padded(), just(')').padded())
+            .map(|(left, right)| QueryRestriction::Xor(left, right));
+
+        let not_expressions = just('-')
+            .padded()
+            .ignore_then(query_rec.clone())
+            .map(QueryRestriction::Not);
+
+        let super_not_expressions = just('!')
+            .padded()
+            .ignore_then(query_rec.clone())
+            .map(QueryRestriction::LenientNot);
+
+        let kins = choice((keyword("kin"), keyword("kins"), keyword("k"))).map(|()| Array::Kins);
+        let functions = choice((
+            keyword("functions"),
+            keyword("function"),
+            keyword("funs"),
+            keyword("fns"),
+            keyword("fn"),
+            keyword("fun"),
+        ))
+        .map(|()| Array::Functions);
+
+        let array_property = choice((kins, functions));
+
+        let array_property_comparison = array_property
+            .then_ignore(text_comparison_symbol)
+            .then(ident().or(quoted_text))
+            .map(|(property, value)| QueryRestriction::Has(property, value));
+
+        let keywords = choice((keyword("kw"), keyword("keyword")));
+
+        let keyword_property_comparison = keywords
+            .ignore_then(text_comparison_symbol.ignore_then(ident().or(quoted_text)))
+            .map(QueryRestriction::HasKw);
+
+        let query = choice((
+            not_expressions,
+            super_not_expressions,
+            or_expressions,
+            xor_expressions,
+            text_property_comparison,
+            number_property_comparison,
+            array_property_comparison,
+            keyword_property_comparison,
+            devoured_by_compare,
+            devours_compare,
+            fuzzy_text,
+        ))
+        .padded()
+        .repeated();
+
+        choice((
+            query.clone().at_least(1),
+            query.delimited_by(just('(').padded(), just(')').padded()),
+        ))
+        .repeated()
+        .flatten()
+        .collect::<Vec<QueryRestriction>>()
+        .map(query_from_restrictions)
+    })
+    .then(sort_expr.or_not())
+    .map(|(mut query, sorting)| {
+        if let Some(sorting) = sorting {
+            query.sort = sorting;
+        }
+        query
+    })
+    .then_ignore(end())
+}
+
+fn query_from_restrictions(restrictions: Vec<QueryRestriction>) -> Query {
+    let mut name = String::new();
+
+    for restriction in &restrictions {
+        if let QueryRestriction::Fuzzy(a) = restriction {
+            name += a;
+            name += " ";
+        }
+    }
+
+    let sort = if name.is_empty() {
+        Sort::Alphabet(Text::Name, Ordering::Ascending)
+    } else {
+        Sort::Fuzzy
+    };
+
+    Query {
+        name,
+        restrictions,
+        sort,
+    }
+}
+
+enum TextComparisonSymbol {
+    Contains,
+    Equals,
+}
+
+enum NumberComparisonSymbol {
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
+    Equal,
+    NotEqual,
 }
