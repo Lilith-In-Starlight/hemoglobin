@@ -149,7 +149,7 @@ fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
         s_text_property.clone().map(Properties::StringProperty),
     ));
 
-    let sort_expr = keyword("SORT")
+    let sort_expr = just("| SORT")
         .padded()
         .ignore_then(sort_dir)
         .then_ignore(keyword("BY").padded())
@@ -176,7 +176,13 @@ fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
             .ignore_then(query_rec.clone().delimited_by(just('('), just(')')))
             .map(QueryRestriction::DevouredBy);
 
-        let quoted_text = filter(|a| char::is_alphanumeric(*a))
+        let word = filter(|a| char::is_alphanumeric(*a))
+            .repeated()
+            .at_least(1)
+            .collect::<String>();
+
+        let quoted_text = word
+            .padded()
             .repeated()
             .collect()
             .delimited_by(just('"'), just('"'));
@@ -253,25 +259,19 @@ fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
             .then(number_comparison)
             .map(|(property, comparison)| QueryRestriction::NumberComparison(property, comparison));
 
-        let fuzzy_text = choice((
-            filter(|x: &char| x.is_ascii_alphanumeric())
-                .repeated()
-                .at_least(1)
-                .collect(),
-            quoted_text,
-        ))
-        .map(QueryRestriction::Fuzzy);
+        let fuzzy_text = choice((word.padded().repeated().at_least(1).collect(), quoted_text))
+            .map(QueryRestriction::Fuzzy);
 
         let or_expressions = query_rec
             .clone()
-            .then_ignore(keyword("OR"))
+            .then_ignore(just("||").padded())
             .then(query_rec.clone())
             .delimited_by(just('(').padded(), just(')').padded())
             .map(|(left, right)| QueryRestriction::Or(left, right));
 
         let xor_expressions = query_rec
             .clone()
-            .then_ignore(keyword("XOR"))
+            .then_ignore(just("##").padded())
             .then(query_rec.clone())
             .delimited_by(just('(').padded(), just(')').padded())
             .map(|(left, right)| QueryRestriction::Xor(left, right));
@@ -297,50 +297,70 @@ fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
         ))
         .map(|()| Array::Functions);
 
-        let array_property = choice((kins, functions));
+        let array_property = choice((kins, functions)).padded();
 
         let array_property_comparison = array_property
             .then_ignore(text_comparison_symbol)
             .then(ident().or(quoted_text))
             .map(|(property, value)| QueryRestriction::Has(property, value));
 
-        let keywords = choice((keyword("kw"), keyword("keyword")));
+        let keywords = choice((keyword("kw"), keyword("keyword"))).padded();
 
         let keyword_property_comparison = keywords
             .ignore_then(text_comparison_symbol.ignore_then(ident().or(quoted_text)))
             .map(QueryRestriction::HasKw);
 
-        let query = choice((
-            not_expressions,
-            super_not_expressions,
-            or_expressions,
-            xor_expressions,
-            text_property_comparison,
-            number_property_comparison,
-            array_property_comparison,
-            keyword_property_comparison,
-            devoured_by_compare,
-            devours_compare,
-            fuzzy_text,
-        ))
-        .padded()
-        .repeated();
+        let query = recursive(|query| {
+            choice((
+                text_property_comparison,
+                number_property_comparison,
+                array_property_comparison,
+                keyword_property_comparison,
+                devoured_by_compare,
+                devours_compare,
+                query_rec
+                    .clone()
+                    .delimited_by(just('('), just(')'))
+                    .map(QueryRestriction::Group),
+                fuzzy_text,
+            ))
+        })
+        .padded();
+
+        let not = just('!').padded().map(|_| QueryOp::Not);
+        let lenient_not = just('-').padded().map(|_| QueryOp::Not);
+
+        let uni_op = choice((not, lenient_not));
+
+        let uni_query = uni_op.then(query_rec.clone()).map(|(op, query)| match op {
+            QueryOp::Not => QueryRestriction::Not(query),
+            QueryOp::LenientNot => QueryRestriction::LenientNot(query),
+        });
+
+        let or = just("OR").padded().map(|_| QueryBinOp::Or);
+        let xor = just("XOR").padded().map(|_| QueryBinOp::Xor);
+
+        let bin_op = choice((or, xor));
+
+        let bin_query =
+            query_rec
+                .clone()
+                .then(bin_op)
+                .then(query_rec.clone())
+                .map(|((left, op), right)| match op {
+                    QueryBinOp::Or => QueryRestriction::Or(left, right),
+                    QueryBinOp::Xor => QueryRestriction::Xor(left, right),
+                });
 
         choice((
-            query.clone().at_least(1),
-            query.delimited_by(just('(').padded(), just(')').padded()),
+            query.clone(),
+            uni_query.delimited_by(just('('), just(')')),
+            bin_query.delimited_by(just('('), just(')')),
+            query_rec
+                .delimited_by(just('('), just('('))
+                .map(QueryRestriction::Group),
         ))
-        .repeated()
-        .flatten()
-        .collect::<Vec<QueryRestriction>>()
-        .map(query_from_restrictions)
-    })
-    .then(sort_expr.or_not())
-    .map(|(mut query, sorting)| {
-        if let Some(sorting) = sorting {
-            query.sort = sorting;
-        }
-        query
+        .map(|x| query_from_restrictions(vec![x]))
     })
     .then_ignore(end())
 }
@@ -380,4 +400,13 @@ enum NumberComparisonSymbol {
     LessThanOrEqual,
     Equal,
     NotEqual,
+}
+
+enum QueryOp {
+    Not,
+    LenientNot,
+}
+enum QueryBinOp {
+    Or,
+    Xor,
 }
