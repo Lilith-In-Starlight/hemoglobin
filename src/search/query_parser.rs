@@ -1,8 +1,9 @@
 use chumsky::{
-    error::Simple,
-    prelude::{choice, end, filter, just, recursive},
-    text::{ident, keyword, TextParser},
-    Parser,
+    error::Rich,
+    extra,
+    prelude::{any, choice, just, recursive},
+    text::ascii::keyword,
+    IterParser, Parser,
 };
 use regex::Regex;
 
@@ -89,280 +90,150 @@ enum TextComparable {
 /// Parses a query.
 /// # Errors
 /// If the parser fails.
-pub fn parse_query(string: &str) -> Result<Query, Vec<Simple<char>>> {
+pub fn parse_query<'a>(string: &'a str) -> Result<Query, Vec<Rich<'a, char>>> {
     let parser = make_query_parser();
-    parser.parse(string)
+    parser.parse(string).into_result()
 }
 
 #[allow(clippy::too_many_lines)]
-fn make_query_parser() -> impl Parser<char, Query, Error = Simple<char>> {
-    let name_property = choice((keyword("name"), keyword("n"))).map(|()| Text::Name);
-    let id_property = keyword("id").map(|()| Text::Id);
-    let type_property = choice((keyword("type"), keyword("t"))).map(|()| Text::Id);
-    let description_property = choice((keyword("description"), keyword("desc"), keyword("dc")))
-        .map(|()| Text::Description);
-    let flavor_text_property =
-        choice((keyword("flavor_text"), keyword("ft"))).map(|()| Text::FlavorText);
+fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a, char>>> {
+    let word = any()
+        .filter(|c: &char| c.is_ascii_alphanumeric())
+        .repeated()
+        .at_least(1)
+        .collect::<String>();
 
-    let s_text_property = choice((
-        name_property,
-        id_property,
-        type_property,
-        description_property,
-        flavor_text_property,
-    ))
-    .padded();
+    let number = any()
+        .filter(|c: &char| c.is_numeric())
+        .repeated()
+        .at_least(1)
+        .collect::<String>()
+        .try_map(|x, span| x.parse().map_err(|x| Rich::custom(span, "Not a number")));
 
-    let ascending =
-        choice((keyword("ASCENDING"), keyword("ASC"), keyword("A"))).map(|()| Ordering::Ascending);
-    let descending =
-        choice((keyword("DESCENDING"), keyword("DES"), keyword("D"))).map(|()| Ordering::Ascending);
-    let sort_dir = choice((
-        ascending.map(|_| Ordering::Ascending),
-        descending.map(|_| Ordering::Ascending),
-    ))
-    .padded();
-
-    let cost_property = choice((keyword("c"), keyword("cost"))).map(|()| Number::Cost);
-    let strength_property = choice((
-        keyword("s"),
-        keyword("p"),
-        keyword("strenght"),
-        keyword("power"),
-    ))
-    .map(|()| Number::Power);
-    let defense_property =
-        choice((keyword("d"), keyword("defense"), keyword("def"))).map(|()| Number::Defense);
-    let health_property =
-        choice((keyword("h"), keyword("hp"), keyword("health"))).map(|()| Number::Health);
-
-    let s_num_property = choice((
-        cost_property,
-        strength_property,
-        defense_property,
-        health_property,
-    ))
-    .padded();
-
-    let sortable_property = choice((
-        s_num_property.clone().map(Properties::NumProperty),
-        s_text_property.clone().map(Properties::StringProperty),
-    ));
-
-    let sort_expr = just("| SORT")
+    let regex_text = word
         .padded()
-        .ignore_then(sort_dir)
-        .then_ignore(keyword("BY").padded())
-        .then(sortable_property)
-        .map(|(ordering, property)| match property {
-            Properties::StringProperty(property) => Sort::Alphabet(property, ordering),
-            Properties::NumProperty(property) => Sort::Numeric(property, ordering),
-            _ => unreachable!("The parser is incapable of representing this state."),
-        });
+        .repeated()
+        .collect::<Vec<String>>()
+        .try_map(|x, span| {
+            let str = x
+                .into_iter()
+                .reduce(|mut acc, el| {
+                    acc += &el;
+                    acc
+                })
+                .unwrap_or_default();
 
-    let num_property = s_num_property.clone();
-    let text_property = s_text_property.clone();
+            Regex::new(str.as_str()).map_err(|x| Rich::custom(span, "Not a valid regex"))
+        })
+        .delimited_by(just('/'), just('/'));
 
-    recursive(|query_rec| {
-        let devours_property = choice((keyword("devours"), keyword("dev"), keyword("dv"))).padded();
-        let devours_compare = devours_property
-            .ignore_then(just(':'))
-            .ignore_then(query_rec.clone().delimited_by(just('('), just(')')))
-            .map(QueryRestriction::Devours);
-
-        let devoured_by_property = choice((keyword("devoured_by"), keyword("dby"))).padded();
-        let devoured_by_compare = devoured_by_property
-            .ignore_then(just(':'))
-            .ignore_then(query_rec.clone().delimited_by(just('('), just(')')))
-            .map(QueryRestriction::DevouredBy);
-
-        let word = filter(|a| char::is_alphanumeric(*a))
-            .repeated()
-            .at_least(1)
-            .collect::<String>();
-
+    let expr = recursive(|expr| {
         let quoted_text = word
             .padded()
             .repeated()
-            .collect()
+            .collect::<Vec<String>>()
+            .map(|x| {
+                x.into_iter()
+                    .reduce(|mut acc, el| {
+                        acc += &el;
+                        acc
+                    })
+                    .unwrap_or_default()
+            })
             .delimited_by(just('"'), just('"'));
 
-        let regex = filter(|a| char::is_alphanumeric(*a))
-            .repeated()
-            .collect()
-            .delimited_by(just('/'), just('/'))
-            .map(|x: String| Regex::new(&x));
+        // Num Properties
+        let cost_property_name = keyword("cost").to(Number::Cost);
+        let power_property_name = keyword("power").to(Number::Power);
+        let def_property_name = keyword("def").to(Number::Defense);
+        let health_property_name = keyword("health").to(Number::Health);
 
-        let text_comparable = choice((
-            ident().map(TextComparable::String),
-            quoted_text.map(TextComparable::String),
-            regex
-                .try_map(|x, span| x.map_err(|err| Simple::custom(span, format!("{err}"))))
-                .map(TextComparable::Regex),
+        let num_property_name = choice((
+            cost_property_name,
+            power_property_name,
+            def_property_name,
+            health_property_name,
+        ));
+
+        let num_comparison_symbol = choice((
+            just('>').to(NumberComparisonSymbol::GreaterThan),
+            just('<').to(NumberComparisonSymbol::LessThan),
+            just('=').to(NumberComparisonSymbol::Equal),
+            just('!')
+                .then(just('='))
+                .to(NumberComparisonSymbol::NotEqual),
+        ));
+
+        let num_comparison = num_comparison_symbol
+            .then(number)
+            .map(|(comparison, number)| match comparison {
+                NumberComparisonSymbol::GreaterThan => Comparison::GreaterThan(number),
+                NumberComparisonSymbol::LessThan => Comparison::LowerThan(number),
+                NumberComparisonSymbol::GreaterThanOrEqual => {
+                    Comparison::GreaterThanOrEqual(number)
+                }
+                NumberComparisonSymbol::LessThanOrEqual => Comparison::LowerThanOrEqual(number),
+                NumberComparisonSymbol::Equal => Comparison::Equal(number),
+                NumberComparisonSymbol::NotEqual => Comparison::NotEqual(number),
+            });
+
+        let num_property = num_property_name
+            .then(num_comparison)
+            .map(|(property, cost)| QueryRestriction::NumberComparison(property, cost));
+
+        // Text Properties
+
+        let name_property_name = keyword("name").to(Text::Name);
+        let desc_property_name = keyword("desc").to(Text::Description);
+        let flavor_property_name = keyword("flavor").to(Text::FlavorText);
+        let id_property_name = keyword("id").to(Text::Id);
+        let type_property_name = keyword("type").to(Text::Type);
+
+        let text_property_name = choice((
+            name_property_name,
+            desc_property_name,
+            flavor_property_name,
+            id_property_name,
+            type_property_name,
         ));
 
         let text_comparison_symbol = choice((
-            just('=').map(|_| TextComparisonSymbol::Equals),
-            just(':').map(|_| TextComparisonSymbol::Contains),
-        ))
-        .padded();
+            just('=').to(TextComparisonSymbol::Equals),
+            just(':').to(TextComparisonSymbol::Contains),
+        ));
 
-        let text_comparison =
-            text_comparison_symbol
-                .padded()
-                .then(text_comparable)
-                .map(|(comparison, compared)| match compared {
-                    TextComparable::String(text) => match comparison {
-                        TextComparisonSymbol::Contains => TextComparison::Contains(text),
-                        TextComparisonSymbol::Equals => TextComparison::EqualTo(text),
-                    },
-                    TextComparable::Regex(regex) => TextComparison::HasMatch(regex),
-                });
+        let text_comparable = choice((
+            quoted_text.map(TextComparable::String),
+            regex_text.map(TextComparable::Regex),
+        ));
 
-        let text_property_comparison = text_property
+        let text_comparison = text_comparison_symbol
+            .then(text_comparable)
+            .map(|(symbol, text)| match text {
+                TextComparable::String(string) => match symbol {
+                    TextComparisonSymbol::Contains => TextComparison::Contains(string),
+                    TextComparisonSymbol::Equals => TextComparison::EqualTo(string),
+                },
+                TextComparable::Regex(regex) => TextComparison::HasMatch(regex),
+            });
+
+        let text_property = text_property_name
             .then(text_comparison)
             .map(|(property, comparison)| QueryRestriction::TextComparison(property, comparison));
 
-        let nat_number = filter(|x: &char| x.is_numeric())
-            .repeated()
-            .at_least(1)
-            .collect()
-            .try_map(|text: String, span| {
-                text.parse::<usize>()
-                    .map_err(|err| Simple::custom(span, format!("{err}")))
-            })
-            .padded();
+        let atom = choice((num_property, text_property)).map(|x| query_from_restrictions(vec![x]));
 
-        let number_comparison_symbol = choice((
-            just(">=").map(|_| NumberComparisonSymbol::GreaterThanOrEqual),
-            just("<=").map(|_| NumberComparisonSymbol::LessThanOrEqual),
-            just('>').map(|_| NumberComparisonSymbol::GreaterThan),
-            just('<').map(|_| NumberComparisonSymbol::LessThan),
-            just("!=").map(|_| NumberComparisonSymbol::NotEqual),
-            just("=").map(|_| NumberComparisonSymbol::Equal),
-            just(":").map(|_| NumberComparisonSymbol::Equal),
-        ))
-        .padded();
+        let atom = atom.or(expr.clone().delimited_by(just('('), just(')')));
 
-        let number_comparison = number_comparison_symbol
-            .then(nat_number)
-            .map(|(comp, num)| match comp {
-                NumberComparisonSymbol::GreaterThan => Comparison::GreaterThan(num),
-                NumberComparisonSymbol::LessThan => Comparison::LowerThan(num),
-                NumberComparisonSymbol::GreaterThanOrEqual => Comparison::GreaterThanOrEqual(num),
-                NumberComparisonSymbol::LessThanOrEqual => Comparison::LowerThanOrEqual(num),
-                NumberComparisonSymbol::Equal => Comparison::Equal(num),
-                NumberComparisonSymbol::NotEqual => Comparison::NotEqual(num),
-            });
+        atom.then(just("OR").ignore_then(expr).or_not()).map(
+            |(first, maybe_second): (Query, Option<Query>)| match maybe_second {
+                None => first,
+                Some(right) => query_from_restrictions(vec![QueryRestriction::Or(first, right)]),
+            },
+        )
+    });
 
-        let number_property_comparison = num_property
-            .then(number_comparison)
-            .map(|(property, comparison)| QueryRestriction::NumberComparison(property, comparison));
-
-        let fuzzy_text = choice((word.padded().repeated().at_least(1).collect(), quoted_text))
-            .map(QueryRestriction::Fuzzy);
-
-        let or_expressions = query_rec
-            .clone()
-            .then_ignore(just("||").padded())
-            .then(query_rec.clone())
-            .delimited_by(just('(').padded(), just(')').padded())
-            .map(|(left, right)| QueryRestriction::Or(left, right));
-
-        let xor_expressions = query_rec
-            .clone()
-            .then_ignore(just("##").padded())
-            .then(query_rec.clone())
-            .delimited_by(just('(').padded(), just(')').padded())
-            .map(|(left, right)| QueryRestriction::Xor(left, right));
-
-        let not_expressions = just('-')
-            .padded()
-            .ignore_then(query_rec.clone())
-            .map(QueryRestriction::Not);
-
-        let super_not_expressions = just('!')
-            .padded()
-            .ignore_then(query_rec.clone())
-            .map(QueryRestriction::LenientNot);
-
-        let kins = choice((keyword("kin"), keyword("kins"), keyword("k"))).map(|()| Array::Kins);
-        let functions = choice((
-            keyword("functions"),
-            keyword("function"),
-            keyword("funs"),
-            keyword("fns"),
-            keyword("fn"),
-            keyword("fun"),
-        ))
-        .map(|()| Array::Functions);
-
-        let array_property = choice((kins, functions)).padded();
-
-        let array_property_comparison = array_property
-            .then_ignore(text_comparison_symbol)
-            .then(ident().or(quoted_text))
-            .map(|(property, value)| QueryRestriction::Has(property, value));
-
-        let keywords = choice((keyword("kw"), keyword("keyword"))).padded();
-
-        let keyword_property_comparison = keywords
-            .ignore_then(text_comparison_symbol.ignore_then(ident().or(quoted_text)))
-            .map(QueryRestriction::HasKw);
-
-        let query = recursive(|query| {
-            choice((
-                text_property_comparison,
-                number_property_comparison,
-                array_property_comparison,
-                keyword_property_comparison,
-                devoured_by_compare,
-                devours_compare,
-                query_rec
-                    .clone()
-                    .delimited_by(just('('), just(')'))
-                    .map(QueryRestriction::Group),
-                fuzzy_text,
-            ))
-        })
-        .padded();
-
-        let not = just('!').padded().map(|_| QueryOp::Not);
-        let lenient_not = just('-').padded().map(|_| QueryOp::Not);
-
-        let uni_op = choice((not, lenient_not));
-
-        let uni_query = uni_op.then(query_rec.clone()).map(|(op, query)| match op {
-            QueryOp::Not => QueryRestriction::Not(query),
-            QueryOp::LenientNot => QueryRestriction::LenientNot(query),
-        });
-
-        let or = just("OR").padded().map(|_| QueryBinOp::Or);
-        let xor = just("XOR").padded().map(|_| QueryBinOp::Xor);
-
-        let bin_op = choice((or, xor));
-
-        let bin_query =
-            query_rec
-                .clone()
-                .then(bin_op)
-                .then(query_rec.clone())
-                .map(|((left, op), right)| match op {
-                    QueryBinOp::Or => QueryRestriction::Or(left, right),
-                    QueryBinOp::Xor => QueryRestriction::Xor(left, right),
-                });
-
-        choice((
-            query.clone(),
-            uni_query.delimited_by(just('('), just(')')),
-            bin_query.delimited_by(just('('), just(')')),
-            query_rec
-                .delimited_by(just('('), just('('))
-                .map(QueryRestriction::Group),
-        ))
-        .map(|x| query_from_restrictions(vec![x]))
-    })
-    .then_ignore(end())
+    expr
 }
 
 fn query_from_restrictions(restrictions: Vec<QueryRestriction>) -> Query {
@@ -388,11 +259,13 @@ fn query_from_restrictions(restrictions: Vec<QueryRestriction>) -> Query {
     }
 }
 
+#[derive(Clone)]
 enum TextComparisonSymbol {
     Contains,
     Equals,
 }
 
+#[derive(Clone)]
 enum NumberComparisonSymbol {
     GreaterThan,
     LessThan,
