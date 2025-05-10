@@ -316,7 +316,7 @@ mod test {
 
         let card = search::search(
             // &search::query_parser::parse_query("shuffle a grand design").unwrap(),
-            &search::query_parser::parse_query("(c=1 OR c=3) XOR (c=1 OR c=4)").unwrap(),
+            &search::query_parser::parse_query("() OR -c:").unwrap(),
             card.iter(),
         );
 
