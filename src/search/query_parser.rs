@@ -109,12 +109,10 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
 
     let quoted_word = |delim: char| {
         any()
-            .filter(move |c: &char| !c.is_whitespace() && *c != delim)
-            .labelled("not whitespace")
+            .filter(move |c: &char| *c != delim)
             .repeated()
-            .at_least(1)
             .collect::<String>()
-            .labelled("ident")
+            .labelled("string wrapped in {delim}")
     };
 
     let keyword = |mat: &'static str| {
@@ -183,35 +181,14 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
         .labelled("number");
 
     let regex_text = quoted_word('/')
-        .padded()
-        .repeated()
-        .collect::<Vec<String>>()
         .try_map(|x, span| {
-            let str = x
-                .into_iter()
-                .reduce(|mut acc, el| {
-                    acc += &el;
-                    acc
-                })
-                .unwrap_or_default();
-
-            Regex::new(str.as_str())
+            Regex::new(x.as_str())
                 .map_err(|x| Rich::custom(span, format!("Not a valid regex: {x}")))
         })
-        .delimited_by(just('/'), just('/'));
+        .delimited_by(just('/'), just('/'))
+        .labelled("regex expression");
 
     let quoted_text = quoted_word('"')
-        .padded()
-        .repeated()
-        .collect::<Vec<String>>()
-        .map(|x| {
-            x.into_iter()
-                .reduce(|mut acc, el| {
-                    acc += &el;
-                    acc
-                })
-                .unwrap_or_default()
-        })
         .delimited_by(just('"'), just('"'))
         .labelled("quoted text");
 
@@ -288,9 +265,25 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
 
         let text_property = text_property_name
             .clone()
-            .then(text_comparison)
+            .then(text_comparison.clone())
             .map(|(property, comparison)| QueryRestriction::TextComparison(property, comparison))
             .padded();
+
+        // Arrays
+        let kins_property_name = choice((keyword("kins"), keyword("k"))).to(Array::Kins);
+
+        let array_property_name = kins_property_name;
+
+        let array_property = array_property_name
+            .then(text_comparison.clone())
+            .map(|(property, comparison)| QueryRestriction::Has(property, comparison));
+
+        // Keywords
+        let kws_property_name = choice((keyword("keyword"), keyword("kw")));
+
+        let kw_property = kws_property_name
+            .ignore_then(text_comparison)
+            .map(QueryRestriction::HasKw);
 
         // Devours
         let devours_property_name = choice((keyword("devours"), keyword("dev"))).to(Text::Name);
@@ -324,6 +317,8 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
             text_property,
             devours_property,
             devouredby_property,
+            array_property,
+            kw_property,
             fuzzy,
         ))
         .padded();

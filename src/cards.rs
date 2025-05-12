@@ -452,6 +452,8 @@ pub struct Keyword {
 
 impl Card {
     /// Obtains a randomly selected image name from the `Card`'s img field. If it can't, it gets an image name based on its name.
+    /// # Panics
+    /// If a random number cannot be obtained from the source
     #[must_use]
     pub fn get_random_image_path(&self) -> String {
         self.images
@@ -468,6 +470,8 @@ impl Card {
     }
 
     /// Obtains the image matching the index. Gets the image matching the name if there's no image for that index in self.images
+    /// # Panics
+    /// If a random number cannot be obtained from the source
     #[must_use]
     pub fn get_image_path(&self, index: usize) -> String {
         self.images
@@ -512,13 +516,15 @@ impl CardId {
 
         if let Some(kins) = &self.kins {
             for kin in kins {
-                restrictions.push(QueryRestriction::Has(Array::Kins, kin.clone()));
+                let kin = TextComparison::EqualTo(kin.clone());
+                restrictions.push(QueryRestriction::Has(Array::Kins, kin));
             }
         }
 
         if let Some(keywords) = &self.keywords {
             for keyword in keywords {
-                restrictions.push(QueryRestriction::HasKw(keyword.name.clone()));
+                let keyword = TextComparison::EqualTo(keyword.name.clone());
+                restrictions.push(QueryRestriction::HasKw(keyword));
             }
         }
 

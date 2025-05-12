@@ -166,10 +166,37 @@ impl Display for QueryRestriction {
                 }
             },
             Self::Has(property, text) => match property {
-                Array::Functions => write!(f, "which can be used to \"{text}\""),
-                property => write!(f, "whose {property} have \"{text}\" among them"),
+                Array::Functions => match text {
+                    TextComparison::Contains(text) => {
+                        write!(f, "which can be used to \"{text}\"")
+                    }
+                    TextComparison::EqualTo(text) => write!(f, "which can be used to \"{text}\""),
+                    TextComparison::HasMatch(regex) => write!(f, "which can be used to /{regex}/"),
+                },
+
+                property => match text {
+                    TextComparison::Contains(text) => {
+                        write!(f, "whose {property} have \"{text}\" among them")
+                    }
+                    TextComparison::EqualTo(text) => {
+                        write!(f, "whose {property} have exactly \"{text}\" among them")
+                    }
+                    TextComparison::HasMatch(regex) => {
+                        write!(f, "whose {property} have /{regex}/ among them")
+                    }
+                },
             },
-            Self::HasKw(keyword) => write!(f, "with a \"{keyword}\" keyword"),
+            Self::HasKw(keyword) => match keyword {
+                TextComparison::Contains(text) => {
+                    write!(f, "with a \"{text}\" keyword")
+                }
+                TextComparison::EqualTo(text) => {
+                    write!(f, "with exactly a \"{text}\" keyword")
+                }
+                TextComparison::HasMatch(regex) => {
+                    write!(f, "with a /{regex}/ keyword")
+                }
+            },
             Self::Not(query) => write!(f, "that aren't [{query}]"),
             Self::LenientNot(query) => write!(
                 f,
@@ -197,8 +224,8 @@ pub enum QueryRestriction {
     DevouredBy(Query),
     NumberComparison(Number, Comparison),
     TextComparison(Text, TextComparison),
-    Has(Array, String),
-    HasKw(String),
+    Has(Array, TextComparison),
+    HasKw(TextComparison),
     Not(Query),
     LenientNot(Query),
     Group(Query),
@@ -398,15 +425,43 @@ where
                 filtered = filtered.and(comparison.compare(&card.get_num_property(field)));
             }
             QueryRestriction::Has(field, thing) => {
-                let matches = match_in_vec(card.get_vec_property(field), |text| {
-                    text.to_lowercase().contains(&thing.to_lowercase())
-                });
+                let matches = match thing {
+                    TextComparison::Contains(thing) => {
+                        match_in_vec(card.get_vec_property(field), |text| {
+                            text.to_lowercase().contains(&thing.to_lowercase())
+                        })
+                    }
+                    TextComparison::EqualTo(thing) => {
+                        match_in_vec(card.get_vec_property(field), |text| {
+                            text.to_lowercase() == thing.to_lowercase()
+                        })
+                    }
+                    TextComparison::HasMatch(regex) => {
+                        match_in_vec(card.get_vec_property(field), |text| {
+                            regex.is_match(&text.to_lowercase())
+                        })
+                    }
+                };
                 filtered = filtered.and(matches);
             }
             QueryRestriction::HasKw(thing) => {
-                let matches = match_in_vec(card.get_keywords(), |keyword| {
-                    keyword.name.to_lowercase().contains(&thing.to_lowercase())
-                });
+                let matches = match thing {
+                    TextComparison::Contains(thing) => {
+                        match_in_vec(card.get_keywords(), |keyword| {
+                            keyword.name.to_lowercase().contains(&thing.to_lowercase())
+                        })
+                    }
+                    TextComparison::EqualTo(thing) => {
+                        match_in_vec(card.get_keywords(), |keyword| {
+                            keyword.name.to_lowercase() == thing.to_lowercase()
+                        })
+                    }
+                    TextComparison::HasMatch(regex) => {
+                        match_in_vec(card.get_keywords(), |keyword| {
+                            regex.is_match(&keyword.name.to_lowercase())
+                        })
+                    }
+                };
                 filtered = filtered.and(matches);
             }
             QueryRestriction::Not(queryres) => {
