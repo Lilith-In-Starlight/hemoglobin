@@ -314,9 +314,13 @@ mod test {
         )
         .expect("Couldn't convert the real cards.json to a card");
 
+        let x = search::query_parser::parse_query("c=2");
+
+        panic!("{x:#?}");
+
         let card = search::search(
             // &search::query_parser::parse_query("shuffle a grand design").unwrap(),
-            &search::query_parser::parse_query("() OR -c:").unwrap(),
+            &search::query_parser::parse_query("c=2").unwrap(),
             card.iter(),
         );
 

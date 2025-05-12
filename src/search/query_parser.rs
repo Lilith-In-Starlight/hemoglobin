@@ -96,14 +96,26 @@ pub fn parse_query(string: &str) -> Result<Query, Vec<Rich<'_, char>>> {
 }
 
 #[allow(clippy::too_many_lines)]
-fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a, char>>> + 'a {
+pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a, char>>> + 'a {
     let word = any()
-        .filter(|c: &char| c.is_ascii_alphanumeric())
-        .labelled("alphanumeric")
+        .filter(|c: &char| {
+            !c.is_whitespace() && !matches!(*c, ':' | '<' | '>' | '!' | '=' | '(' | ')' | '/' | '"')
+        })
+        .labelled("not whitespace")
         .repeated()
         .at_least(1)
         .collect::<String>()
         .labelled("ident");
+
+    let quoted_word = |delim: char| {
+        any()
+            .filter(move |c: &char| !c.is_whitespace() && *c != delim)
+            .labelled("not whitespace")
+            .repeated()
+            .at_least(1)
+            .collect::<String>()
+            .labelled("ident")
+    };
 
     let keyword = |mat: &'static str| {
         word.try_map(move |kw, span| {
@@ -170,7 +182,7 @@ fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a
         })
         .labelled("number");
 
-    let regex_text = word
+    let regex_text = quoted_word('/')
         .padded()
         .repeated()
         .collect::<Vec<String>>()
@@ -188,7 +200,7 @@ fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a
         })
         .delimited_by(just('/'), just('/'));
 
-    let quoted_text = word
+    let quoted_text = quoted_word('"')
         .padded()
         .repeated()
         .collect::<Vec<String>>()
@@ -259,6 +271,7 @@ fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Rich<'a
         let text_comparable = choice((
             quoted_text.map(TextComparable::String),
             regex_text.map(TextComparable::Regex),
+            word.map(TextComparable::String),
         ))
         .padded();
 

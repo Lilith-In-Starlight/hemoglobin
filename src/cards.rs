@@ -7,8 +7,6 @@ use crate::cards::properties::Text;
 use crate::clean_ascii_keep_case;
 use crate::numbers::MaybeImprecise;
 use crate::search::TextComparison;
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
 use rich_text::RichString;
 use std::{collections::HashMap, fmt::Display};
 
@@ -456,11 +454,13 @@ impl Card {
     /// Obtains a randomly selected image name from the `Card`'s img field. If it can't, it gets an image name based on its name.
     #[must_use]
     pub fn get_random_image_path(&self) -> String {
-        let rng = &mut rand::thread_rng();
         self.images
             .last()
             .and_then(|x| match &x.sources {
-                ImageSource::Files(files) => files.choose(rng),
+                ImageSource::Files(files) => files.get(
+                    (getrandom::u32().expect("What do you Mean you can't obtain this") as usize)
+                        % files.len(),
+                ),
                 ImageSource::CardName => None,
             })
             .cloned()
@@ -473,7 +473,10 @@ impl Card {
         self.images
             .get(index)
             .and_then(|x| match &x.sources {
-                ImageSource::Files(files) => files.choose(&mut thread_rng()),
+                ImageSource::Files(files) => files.get(
+                    (getrandom::u32().expect("What do you Mean you can't obtain this") as usize)
+                        % files.len(),
+                ),
                 ImageSource::CardName => None,
             })
             .cloned()

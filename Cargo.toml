@@ -10,7 +10,7 @@ repository = "https://github.com/Lilith-In-Starlight/hemoglobin"
 
 [dependencies]
 chumsky = "0.10.1"
-rand = "0.8.5"
+getrandom = { version = "0.3.3", features = ["wasm_js"] }
 regex = "1.10.5"
 rust-fuzzy-search = "0.1.1"
 serde = { version = "1.0.203", features = ["derive"] }
