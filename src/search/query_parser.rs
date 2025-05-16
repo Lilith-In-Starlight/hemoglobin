@@ -1,14 +1,16 @@
 use chumsky::{
     error::Rich,
     extra,
-    label::LabelError,
     prelude::{any, choice, end, just, recursive},
     IterParser, Parser,
 };
 use regex::Regex;
 
 use crate::{
-    cards::properties::{Array, Number, Text},
+    cards::{
+        kins::{Kin, KinComparison},
+        properties::{Array, Number, Text},
+    },
     numbers::Comparison,
 };
 
@@ -29,7 +31,7 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
             Ok(Properties::NumProperty(Number::Power))
         }
         "defense" | "defence" | "def" | "d" => Ok(Properties::NumProperty(Number::Defense)),
-        "kin" | "k" => Ok(Properties::ArrayProperty(Array::Kins)),
+        "kin" | "k" => Ok(Properties::Kin),
         "function" | "fun" | "fn" | "f" => Ok(Properties::ArrayProperty(Array::Functions)),
         "keyword" | "kw" => Ok(Properties::Keywords),
         "sort" | "so" => Ok(Properties::Sort(Ordering::Ascending)),
@@ -38,11 +40,13 @@ pub fn get_property_from_name(str: &str) -> Result<Properties, Errors> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Properties {
     NumProperty(Number),
     StringProperty(Text),
     ArrayProperty(Array),
     Sort(Ordering),
+    Kin,
     Keywords,
 }
 
@@ -112,7 +116,7 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
             .filter(move |c: &char| *c != delim)
             .repeated()
             .collect::<String>()
-            .labelled("string wrapped in {delim}")
+            .labelled(format!("string wrapped in {delim}"))
     };
 
     let keyword = |mat: &'static str| {
@@ -120,12 +124,7 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
             if mat == kw {
                 Ok(())
             } else {
-                let a = LabelError::<'a, &'a str, String>::expected_found(
-                    [mat.to_string()],
-                    None,
-                    span,
-                );
-                Err(a)
+                Err(Rich::custom(span, format!("Expected {kw}")))
             }
         })
         .labelled(format!("`{mat}`"))
@@ -167,13 +166,6 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
         .repeated()
         .at_least(1)
         .collect::<String>()
-        .map_err(|err: Rich<_>| {
-            LabelError::<'a, &'a str, String>::expected_found(
-                ["number".to_string()],
-                None,
-                *err.span(),
-            )
-        })
         .try_map(|x, span| {
             x.parse()
                 .map_err(|x| Rich::custom(span, format!("Not a number: {x}")))
@@ -269,14 +261,25 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
             .map(|(property, comparison)| QueryRestriction::TextComparison(property, comparison))
             .padded();
 
-        // Arrays
-        let kins_property_name = choice((keyword("kins"), keyword("k"))).to(Array::Kins);
+        // Kins
+        let kin_property_name = choice((keyword("kins"), keyword("k"))).to(Properties::Kin);
 
-        let array_property_name = kins_property_name;
+        let kin_comparison = text_comparison.clone().map(|x| match x {
+            TextComparison::Contains(string) => match Kin::from_string(&string) {
+                Some(kin) => KinComparison::Similar(kin),
+                None => KinComparison::TextContains(string),
+            },
+            TextComparison::EqualTo(string) => match Kin::from_string(&string) {
+                Some(kin) => KinComparison::Equal(kin),
+                None => KinComparison::TextEqual(string),
+            },
+            TextComparison::HasMatch(regex) => KinComparison::RegexMatch(regex),
+        });
 
-        let array_property = array_property_name
-            .then(text_comparison.clone())
-            .map(|(property, comparison)| QueryRestriction::Has(property, comparison));
+        let kin_property = kin_property_name
+            .padded()
+            .ignore_then(kin_comparison.clone())
+            .map(|comparison| QueryRestriction::KinComparison(comparison));
 
         // Keywords
         let kws_property_name = choice((keyword("keyword"), keyword("kw")));
@@ -317,7 +320,7 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
             text_property,
             devours_property,
             devouredby_property,
-            array_property,
+            kin_property,
             kw_property,
             fuzzy,
         ))

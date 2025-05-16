@@ -13,6 +13,7 @@ use regex::Regex;
 
 use crate::{
     cards::{
+        kins::KinComparison,
         properties::{Array, Number, Read, Text},
         Keyword, KeywordData,
     },
@@ -225,6 +226,7 @@ pub enum QueryRestriction {
     NumberComparison(Number, Comparison),
     TextComparison(Text, TextComparison),
     Has(Array, TextComparison),
+    KinComparison(KinComparison),
     HasKw(TextComparison),
     Not(Query),
     LenientNot(Query),
@@ -271,7 +273,7 @@ pub fn fuzzy(card: &impl Read, query: &str) -> bool {
         || card
             .get_type()
             .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
-        || card.get_kins().is_some_and(|x| {
+        || card.get_kin().is_some_and(|x| {
             x.iter()
                 .any(|x| clean_ascii(x).contains(&clean_ascii(query)))
         })

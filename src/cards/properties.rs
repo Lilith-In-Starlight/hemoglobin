@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::numbers::MaybeImprecise;
 
-use super::{rich_text::RichString, Keyword};
+use super::{kins::Kin, rich_text::RichString, Keyword};
 
 /// This trait is used in card generics. It is useful when you want a function to accept `CardId`s and not only `Card`s.
 pub trait Read {
@@ -21,7 +21,7 @@ pub trait Read {
     /// Return a card's type, if it has one. It may not have one if it is a `CardId`.
     fn get_type(&self) -> Option<&str>;
     /// Return a card's kins, if it has them. It may not have them if it is a `CardId`.
-    fn get_kins(&self) -> Option<&[String]>;
+    fn get_kin(&self) -> Option<&Kin>;
     /// Return a card's flavor text, if it has one. It may not have one if it is a `CardId`.
     fn get_flavor_text(&self) -> Option<&str>;
 }
@@ -50,14 +50,12 @@ impl Display for Number {
 #[derive(Debug, Clone, Copy)]
 pub enum Array {
     Functions,
-    Kins,
 }
 
 impl Display for Array {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Functions => write!(f, "Functions"),
-            Self::Kins => write!(f, "Kins"),
             // Self::Artists => write!(f, "Artists"),
         }
     }

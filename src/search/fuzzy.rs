@@ -29,13 +29,8 @@ pub fn weighted_compare(a: &impl Read, b: &str) -> f32 {
         result += fuzzy_compare(&description.to_string().to_lowercase(), &b.to_lowercase()) * 1.6;
     }
 
-    if let Some(kins) = a.get_kins() {
-        result += kins
-            .iter()
-            .map(|x| fuzzy_compare(&x.to_lowercase(), &b.to_lowercase()))
-            .max_by(|a, b| PartialOrd::partial_cmp(a, b).unwrap_or(Ordering::Less))
-            .unwrap_or(0.0)
-            * 1.5;
+    if let Some(kin) = a.get_kin() {
+        result += fuzzy_compare(kin.get_name(), b) * 1.5;
     }
 
     if let Some(keywords) = a.get_keywords() {

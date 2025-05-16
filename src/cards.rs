@@ -1,5 +1,7 @@
+pub mod kins;
 pub mod properties;
 pub mod rich_text;
+use crate::cards::kins::Kin;
 use crate::cards::properties::Array;
 use crate::cards::properties::Number;
 use crate::cards::properties::Read;
@@ -55,9 +57,9 @@ pub struct Card {
     /// Keywords the card's text has.
     pub keywords: Vec<Keyword>,
     #[serde(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    /// Kins of the card, must include parent kins.
-    pub kins: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Kin
+    pub kin: Option<Kin>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     /// Will be used to provide an official interpretation of the card's text.
@@ -149,7 +151,6 @@ impl Read for Card {
     fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         Some(match property {
             Array::Functions => &self.functions,
-            Array::Kins => &self.kins,
             // Array::Artists => &self.artists,
         })
     }
@@ -177,8 +178,8 @@ impl Read for Card {
     }
 
     /// Return a card's kins. Always returns Some. If the card has no kins, it will return Some empty array.
-    fn get_kins(&self) -> Option<&[String]> {
-        Some(&self.kins)
+    fn get_kin(&self) -> Option<&Kin> {
+        self.kin.as_ref()
     }
 }
 
@@ -232,7 +233,6 @@ impl Read for &Card {
     fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         Some(match property {
             Array::Functions => &self.functions,
-            Array::Kins => &self.kins,
             // Array::Artists => &self.artists,
         })
     }
@@ -260,8 +260,8 @@ impl Read for &Card {
     }
 
     /// Return a card's kins. Always returns Some. If the card has no kins, it will return Some empty array.
-    fn get_kins(&self) -> Option<&[String]> {
-        Some(&self.kins)
+    fn get_kin(&self) -> Option<&Kin> {
+        self.kin.as_ref()
     }
 }
 
@@ -308,7 +308,6 @@ impl Read for CardId {
     fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         match property {
             Array::Functions => self.functions.as_deref(),
-            Array::Kins => self.kins.as_deref(),
             // Array::Artists => None,
         }
     }
@@ -329,8 +328,8 @@ impl Read for CardId {
         self.r#type.as_deref()
     }
 
-    fn get_kins(&self) -> Option<&[String]> {
-        self.kins.as_deref()
+    fn get_kin(&self) -> Option<&Kin> {
+        self.kin.as_ref()
     }
 }
 
@@ -377,7 +376,6 @@ impl Read for &CardId {
     fn get_vec_property(&self, property: &Array) -> Option<&[String]> {
         match property {
             Array::Functions => self.functions.as_deref(),
-            Array::Kins => self.kins.as_deref(),
             // Array::Artists => None,
         }
     }
@@ -398,8 +396,8 @@ impl Read for &CardId {
         self.r#type.as_deref()
     }
 
-    fn get_kins(&self) -> Option<&[String]> {
-        self.kins.as_deref()
+    fn get_kin(&self) -> Option<&Kin> {
+        self.kin.as_ref()
     }
 }
 
@@ -419,7 +417,7 @@ pub struct CardId {
     pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub kins: Option<Vec<String>>,
+    pub kin: Option<Kin>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub health: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -514,11 +512,12 @@ impl CardId {
             ));
         }
 
-        if let Some(kins) = &self.kins {
-            for kin in kins {
-                let kin = TextComparison::EqualTo(kin.clone());
-                restrictions.push(QueryRestriction::Has(Array::Kins, kin));
-            }
+        if let Some(kins) = &self.kin {
+            todo!("Kin query maker");
+            // for kin in kins {
+            //     let kin = TextComparison::EqualTo(kin.clone());
+            //     restrictions.push(QueryRestriction::Has(Array::Kins, kin));
+            // }
         }
 
         if let Some(keywords) = &self.keywords {
