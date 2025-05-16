@@ -1,4 +1,5 @@
-use chumsky::container::Seq;
+use std::fmt::Display;
+
 use regex::Regex;
 use serde::{de::Visitor, Deserialize, Serialize};
 
@@ -10,6 +11,27 @@ pub enum Kin {
     Insect(Option<InsectKin>),
     Piezan(Option<PiezanKin>),
     Machine(Option<MachineKin>),
+}
+
+impl Display for Kin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Sorcery => write!(f, "Sorcery Kin"),
+            Self::Their => write!(f, "THEIR_KIN"),
+            Self::Insect(insect_kin) => match insect_kin {
+                Some(kin) => write!(f, "{kin}"),
+                None => write!(f, "Insect Kin"),
+            },
+            Self::Piezan(piezan_kin) => match piezan_kin {
+                Some(kin) => write!(f, "{kin}"),
+                None => write!(f, "Insect Kin"),
+            },
+            Self::Machine(machine_kin) => match machine_kin {
+                Some(kin) => write!(f, "{kin}"),
+                None => write!(f, "Insect Kin"),
+            },
+        }
+    }
 }
 
 impl Kin {
@@ -24,6 +46,7 @@ impl Kin {
     }
 
     /// Returns true if `other` is the same kin or a child kin of `self`
+    #[must_use]
     pub fn is_same_or_child(self, other: Self) -> bool {
         #[allow(clippy::match_same_arms)]
         match (self, other) {
@@ -48,6 +71,7 @@ impl Kin {
         }
     }
 
+    #[must_use]
     pub fn get_equalness(self, other: Self) -> f64 {
         if self.is_same_or_child(other) {
             if self == other {
@@ -60,20 +84,21 @@ impl Kin {
         }
     }
 
-    pub fn from_string<'a>(string: &'a str) -> Option<Self> {
+    #[must_use]
+    pub fn from_string(string: &str) -> Option<Self> {
         match string {
-            "THEIR" | "their" | "THEY" | "they" => Some(Kin::Their),
-            "sorcery" => Some(Kin::Sorcery),
-            "insect" => Some(Kin::Insect(None)),
-            "piezan" => Some(Kin::Piezan(None)),
-            "machine" => Some(Kin::Machine(None)),
-            "ant" => Some(Kin::Insect(Some(InsectKin::Ant))),
-            "bee" => Some(Kin::Insect(Some(InsectKin::Bee))),
-            "blight" => Some(Kin::Machine(Some(MachineKin::Blight))),
-            "red kingdom" => Some(Kin::Piezan(Some(PiezanKin::RedKingdom))),
-            "blue kingdom" => Some(Kin::Piezan(Some(PiezanKin::BlueKingdom))),
-            "green kingdom" => Some(Kin::Piezan(Some(PiezanKin::GreenKingdom))),
-            "black kingdom" => Some(Kin::Piezan(Some(PiezanKin::BlackKingdom))),
+            "THEIR" | "their" | "THEY" | "they" => Some(Self::Their),
+            "sorcery" => Some(Self::Sorcery),
+            "insect" => Some(Self::Insect(None)),
+            "piezan" => Some(Self::Piezan(None)),
+            "machine" => Some(Self::Machine(None)),
+            "ant" => Some(Self::Insect(Some(InsectKin::Ant))),
+            "bee" => Some(Self::Insect(Some(InsectKin::Bee))),
+            "blight" => Some(Self::Machine(Some(MachineKin::Blight))),
+            "red kingdom" => Some(Self::Piezan(Some(PiezanKin::RedKingdom))),
+            "blue kingdom" => Some(Self::Piezan(Some(PiezanKin::BlueKingdom))),
+            "green kingdom" => Some(Self::Piezan(Some(PiezanKin::GreenKingdom))),
+            "black kingdom" => Some(Self::Piezan(Some(PiezanKin::BlackKingdom))),
             _ => None,
         }
     }
@@ -96,7 +121,7 @@ impl Visitor<'_> for KinVisitor {
     where
         E: serde::de::Error,
     {
-        Self::Value::from_string(v).ok_or(E::custom(format!("{v} is not a valid kin")))
+        Self::Value::from_string(v).ok_or_else(|| E::custom(format!("{v} is not a valid kin")))
     }
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -119,6 +144,15 @@ pub enum InsectKin {
     Bee,
 }
 
+impl Display for InsectKin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ant => write!(f, "Ant Kin"),
+            Self::Bee => write!(f, "Bee Kin"),
+        }
+    }
+}
+
 impl InsectKin {
     #[must_use]
     pub const fn get_name(self) -> &'static str {
@@ -128,6 +162,7 @@ impl InsectKin {
         }
     }
 
+    #[must_use]
     pub fn get_equalness(self, other: Self) -> f64 {
         if self == other {
             1.0
@@ -145,6 +180,17 @@ pub enum PiezanKin {
     GreenKingdom,
 }
 
+impl Display for PiezanKin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RedKingdom => write!(f, "Red Kingdom Kin"),
+            Self::BlueKingdom => write!(f, "Blue Kingdom Kin"),
+            Self::BlackKingdom => write!(f, "Black Kingdom Kin"),
+            Self::GreenKingdom => write!(f, "Green Kingdom Kin"),
+        }
+    }
+}
+
 impl PiezanKin {
     #[must_use]
     pub const fn get_name(self) -> &'static str {
@@ -155,6 +201,7 @@ impl PiezanKin {
             Self::GreenKingdom => "green kingdom",
         }
     }
+    #[must_use]
     pub fn get_equalness(self, other: Self) -> f64 {
         if self == other {
             1.0
@@ -169,6 +216,14 @@ pub enum MachineKin {
     Blight,
 }
 
+impl Display for MachineKin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Blight => write!(f, "Blight Kin"),
+        }
+    }
+}
+
 impl MachineKin {
     #[must_use]
     pub const fn get_name(self) -> &'static str {
@@ -176,6 +231,7 @@ impl MachineKin {
             Self::Blight => "blight",
         }
     }
+    #[must_use]
     pub fn get_equalness(self, other: Self) -> f64 {
         if self == other {
             1.0
@@ -214,13 +270,13 @@ impl KinComparison {
     /// `Self::Equal` will match only exactly the same kin.
     /// `Self::Similar` will match the same kin as well as child kins (see: `Kin::is_same_or_child`)
     #[must_use]
-    pub fn is_match(self, other: Kin) -> bool {
+    pub fn is_match(&self, other: Kin) -> bool {
         match self {
-            Self::Equal(this) => this == other,
-            Self::Similar(this) => this.is_same_or_child(other),
-            Self::TextContains(this) => other.get_name().contains(&this),
+            Self::Equal(this) => other == *this,
+            Self::Similar(this) => other.is_same_or_child(*this),
+            Self::TextContains(this) => other.get_name().contains(this.as_str()),
             Self::TextEqual(this) => other.get_name().to_lowercase() == this.to_lowercase(),
-            Self::RegexMatch(regex) => regex.is_match(&other.get_name()),
+            Self::RegexMatch(regex) => regex.is_match(other.get_name()),
         }
     }
 }

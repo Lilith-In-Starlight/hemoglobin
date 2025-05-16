@@ -279,7 +279,7 @@ pub fn make_query_parser<'a>() -> impl Parser<'a, &'a str, Query, extra::Err<Ric
         let kin_property = kin_property_name
             .padded()
             .ignore_then(kin_comparison.clone())
-            .map(|comparison| QueryRestriction::KinComparison(comparison));
+            .map(QueryRestriction::KinComparison);
 
         // Keywords
         let kws_property_name = choice((keyword("keyword"), keyword("kw")));

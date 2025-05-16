@@ -9,6 +9,7 @@ use crate::cards::properties::Text;
 use crate::clean_ascii_keep_case;
 use crate::numbers::MaybeImprecise;
 use crate::search::TextComparison;
+use kins::KinComparison;
 use rich_text::RichString;
 use std::{collections::HashMap, fmt::Display};
 
@@ -512,12 +513,8 @@ impl CardId {
             ));
         }
 
-        if let Some(kins) = &self.kin {
-            todo!("Kin query maker");
-            // for kin in kins {
-            //     let kin = TextComparison::EqualTo(kin.clone());
-            //     restrictions.push(QueryRestriction::Has(Array::Kins, kin));
-            // }
+        if let Some(kin) = &self.kin {
+            restrictions.push(QueryRestriction::KinComparison(KinComparison::Equal(*kin)));
         }
 
         if let Some(keywords) = &self.keywords {

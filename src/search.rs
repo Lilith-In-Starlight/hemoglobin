@@ -8,6 +8,7 @@ use std::{
     ops::Not,
 };
 
+use chumsky::container::Seq;
 use fuzzy::weighted_compare;
 use regex::Regex;
 
@@ -174,18 +175,17 @@ impl Display for QueryRestriction {
                     TextComparison::EqualTo(text) => write!(f, "which can be used to \"{text}\""),
                     TextComparison::HasMatch(regex) => write!(f, "which can be used to /{regex}/"),
                 },
-
-                property => match text {
-                    TextComparison::Contains(text) => {
-                        write!(f, "whose {property} have \"{text}\" among them")
-                    }
-                    TextComparison::EqualTo(text) => {
-                        write!(f, "whose {property} have exactly \"{text}\" among them")
-                    }
-                    TextComparison::HasMatch(regex) => {
-                        write!(f, "whose {property} have /{regex}/ among them")
-                    }
-                },
+                // property => match text {
+                //     TextComparison::Contains(text) => {
+                //         write!(f, "whose {property} have \"{text}\" among them")
+                //     }
+                //     TextComparison::EqualTo(text) => {
+                //         write!(f, "whose {property} have exactly \"{text}\" among them")
+                //     }
+                //     TextComparison::HasMatch(regex) => {
+                //         write!(f, "whose {property} have /{regex}/ among them")
+                //     }
+                // },
             },
             Self::HasKw(keyword) => match keyword {
                 TextComparison::Contains(text) => {
@@ -206,6 +206,13 @@ impl Display for QueryRestriction {
             Self::Group(query) => write!(f, "which are [{query}]"),
             Self::Or(a, b) => write!(f, "which are [{a}] or [{b}]"),
             Self::Xor(a, b) => write!(f, "which are [{a}] xor [{b}] but not both"),
+            Self::KinComparison(comparison) => match comparison {
+                KinComparison::Equal(kin) => write!(f, "whose kin is exactly {kin}"),
+                KinComparison::Similar(kin) => write!(f, "whose kin is {kin}"),
+                KinComparison::TextContains(kin) => write!(f, "whose kin is \"{kin}\""),
+                KinComparison::TextEqual(kin) => write!(f, "whose kin is exactly \"{kin}\""),
+                KinComparison::RegexMatch(regex) => write!(f, "whose kin matches /{regex}/"),
+            },
         }
     }
 }
@@ -273,10 +280,9 @@ pub fn fuzzy(card: &impl Read, query: &str) -> bool {
         || card
             .get_type()
             .is_some_and(|x| clean_ascii(x).contains(&clean_ascii(query)))
-        || card.get_kin().is_some_and(|x| {
-            x.iter()
-                .any(|x| clean_ascii(x).contains(&clean_ascii(query)))
-        })
+        || card
+            .get_kin()
+            .is_some_and(|x| clean_ascii(x.get_name()).contains(&clean_ascii(query)))
         || card.get_keywords().is_some_and(|x| {
             x.iter()
                 .any(|x| clean_ascii(&x.name).contains(&clean_ascii(query)))
@@ -557,6 +563,12 @@ where
                 } else {
                     filtered = filtered.and(Ternary::False);
                 }
+            }
+            QueryRestriction::KinComparison(comparison) => {
+                let filter = card
+                    .get_kin()
+                    .map_or(Ternary::Void, |kin| comparison.is_match(*kin).into());
+                filtered = filtered.and(filter);
             }
         }
     }
