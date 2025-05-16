@@ -309,22 +309,23 @@ mod test {
     #[test]
     fn test_real_cards() {
         let card: Vec<Card> = serde_json::from_str(
-            &std::fs::read_to_string("../cards_updater/cards_new.json")
+            &std::fs::read_to_string("../hemolymph-static/files/cards.json")
                 .expect("Couldn't load the real cards.json"),
         )
         .expect("Couldn't convert the real cards.json to a card");
 
-        // let x = search::query_parser::parse_query(r#"k="insect""#);
+        let x = search::query_parser::parse_query(r#"vats"#).unwrap();
 
         // panic!("{card:#?}");
-        // panic!("{x:#?}");
+        println!("{x:#?}");
 
         let card = search::search(
             // &search::query_parser::parse_query("shuffle a grand design").unwrap(),
-            &search::query_parser::parse_query("k:piezan").unwrap(),
+            &x,
             card.iter(),
         );
 
+        println!("??");
         for card in card {
             println!("{card}");
         }

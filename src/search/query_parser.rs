@@ -423,7 +423,7 @@ fn query_from_restrictions(restrictions: Vec<QueryRestriction>) -> Query {
     };
 
     Query {
-        name,
+        name: name.trim().to_string(),
         restrictions,
         sort,
     }

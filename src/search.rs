@@ -272,6 +272,22 @@ pub enum Sort {
 /// Restriction that matches only if a card contains some text
 #[must_use]
 pub fn fuzzy(card: &impl Read, query: &str) -> bool {
+    match card.get_name() {
+        Some(name) => {
+            println!("name: {name:#?}");
+            let clean_name = clean_ascii(name);
+            println!("cleaned name: {clean_name:#?}");
+            println!("query: {query:#?}");
+            let clean_query = clean_ascii(query);
+            println!("cleaned query: {clean_query:#?}");
+            println!("name bytes: {:?}", clean_name.as_bytes());
+            println!("query bytes: {:?}", clean_query.as_bytes());
+            
+            println!("clean name contains clean query?: {}", clean_name.contains(&clean_query));
+        },
+        None => println!("????? how"),
+    }
+    println!("---");
     card.get_description()
         .is_some_and(|x| clean_ascii(&x.to_string()).contains(&clean_ascii(query)))
         || card
