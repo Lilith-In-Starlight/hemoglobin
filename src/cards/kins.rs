@@ -6,6 +6,10 @@ use serde::{de::Visitor, Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Represents a Kin. To represent the Kin Tree, some variants have an Option. The None variant represents the parent Kin, while the Some variant represents a child.
 pub enum Kin {
+    Assassin,
+    Undead,
+    Reptile,
+    CultOfNa,
     Sorcery,
     Their,
     Insect(Option<InsectKin>),
@@ -16,6 +20,10 @@ pub enum Kin {
 impl Display for Kin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Undead => write!(f, "Undead Kin"),
+            Self::Assassin => write!(f, "Assassin Kin"),
+            Self::Reptile => write!(f, "Reptile Kin"),
+            Self::CultOfNa => write!(f, "Cult of Nä Kin"),
             Self::Sorcery => write!(f, "Sorcery Kin"),
             Self::Their => write!(f, "THEIR_KIN"),
             Self::Insect(insect_kin) => match insect_kin {
@@ -37,7 +45,11 @@ impl Display for Kin {
 impl Kin {
     pub fn get_name(self) -> &'static str {
         match self {
+            Self::Assassin => "assassin",
+            Self::CultOfNa => "cult of na",
+            Self::Reptile => "reptile",
             Self::Sorcery => "sorcery",
+            Self::Undead => "undead",
             Self::Insect(insect_kin) => insect_kin.map_or("insect", InsectKin::get_name),
             Self::Piezan(piezan_kin) => piezan_kin.map_or("piezan", PiezanKin::get_name),
             Self::Machine(machine_kin) => machine_kin.map_or("machine", MachineKin::get_name),
@@ -51,6 +63,9 @@ impl Kin {
         #[allow(clippy::match_same_arms)]
         match (self, other) {
             // Childless kins
+            (Self::Undead, Self::Undead) => true,
+            (Self::Assassin, Self::Assassin) => true,
+            (Self::Reptile, Self::Reptile) => true,
             (Self::Sorcery, Self::Sorcery) => true,
             (Self::Their, Self::Their) => true,
             (_, Self::Sorcery) | (Self::Sorcery, _) => false,
@@ -89,6 +104,10 @@ impl Kin {
         match string {
             "THEIR" | "their" | "THEY" | "they" => Some(Self::Their),
             "sorcery" => Some(Self::Sorcery),
+            "assassin" => Some(Self::Assassin),
+            "reptile" => Some(Self::Reptile),
+            "cult of na" | "cult of nä" => Some(Self::CultOfNa),
+            "undead" => Some(Self::Undead),
             "insect" => Some(Self::Insect(None)),
             "piezan" => Some(Self::Piezan(None)),
             "machine" => Some(Self::Machine(None)),
