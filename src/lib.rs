@@ -117,41 +117,4 @@ mod test {
             assert!(!fail);
         }
     }
-
-    #[test]
-    fn what() {
-        
-        fn clean_ascii(string: &str) -> String {
-            let string = string.to_lowercase();
-            clean_ascii_keep_case(&string)
-        }
-
-        /// Only handles lowercase because it'll be applied after `to_lowercase`
-        fn clean_ascii_keep_case(string: &str) -> String {
-            let string = string.replace('ä', "a");
-            let string = string.replace('ë', "e");
-            let string = string.replace('ï', "i");
-            let string = string.replace('ö', "o");
-            let string = string.replace('"', "");
-            let string = string.replace('\'', "");
-            let string = string.replace('.', "");
-            let string = string.replace(',', "");
-            string.replace('ü', "u")
-        }
-        
-        let name = "Dr. Vats";
-        let query = "vats";
-        println!("name: {name:#?}");
-        let clean_name = clean_ascii(name);
-        println!("cleaned name: {clean_name:#?}");
-        println!("query: {query:#?}");
-        let clean_query = clean_ascii(query);
-        println!("cleaned query: {clean_query:#?}");
-        println!("name bytes: {:?}", clean_name.as_bytes());
-        println!("query bytes: {:?}", clean_query.as_bytes());
-            
-        println!("clean name contains clean query?: {}", clean_name.contains(&clean_query));
-
-        panic!()
-    }
 }
