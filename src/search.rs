@@ -8,7 +8,6 @@ use std::{
     ops::Not,
 };
 
-use chumsky::container::Seq;
 use fuzzy::weighted_compare;
 use regex::Regex;
 
@@ -282,9 +281,12 @@ pub fn fuzzy(card: &impl Read, query: &str) -> bool {
             println!("cleaned query: {clean_query:#?}");
             println!("name bytes: {:?}", clean_name.as_bytes());
             println!("query bytes: {:?}", clean_query.as_bytes());
-            
-            println!("clean name contains clean query?: {}", clean_name.contains(&clean_query));
-        },
+
+            println!(
+                "clean name contains clean query?: {}",
+                clean_name.contains(&clean_query)
+            );
+        }
         None => println!("????? how"),
     }
     println!("---");
