@@ -1,6 +1,76 @@
-use crate::search::Ternary;
-
 use super::{Compare, Comparison, MaybeImprecise};
+use std::cmp::max;
+use std::cmp::min;
+use std::ops::Not;
+
+/// Represents whether a query has been matched or not. This is not always a boolean value, but instead a ternary value, as cards may have undefined properties.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Ternary {
+    /// Card did not have the requested property.
+    Void,
+    /// Card had the requested property and it did not matched the requested value.
+    False,
+    /// Card had the requested property and it matched the requested value.
+    True,
+}
+
+impl From<Ternary> for bool {
+    fn from(value: Ternary) -> Self {
+        matches!(value, Ternary::True)
+    }
+}
+
+impl Ternary {
+    /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
+    #[must_use]
+    pub fn or(self, b: Self) -> Self {
+        max(self, b)
+    }
+    /// A ternary XOR which outputs the highest-valued result between `self` and `b`, if they are not equal.
+    /// If both values are `Match` or `NotMatch`, the output will be `NotMatch`.
+    /// If both values are `NotHave`, the output will be `NotHave`.
+    /// If no value is Match and there is a `NotHave`, the output will be `NotHave`.
+    #[must_use]
+    pub const fn xor(self, b: Self) -> Self {
+        match (self, b) {
+            (Self::Void, Self::Void) => Self::Void,
+            (Self::True, Self::False | Self::Void) | (Self::False | Self::Void, Self::True) => {
+                Self::True
+            }
+            (Self::False | Self::Void, Self::False)
+            | (Self::False, Self::Void)
+            | (Self::True, Self::True) => Self::False,
+        }
+    }
+    /// A ternary AND which outputs the lowest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
+    #[must_use]
+    pub fn and(self, b: Self) -> Self {
+        min(self, b)
+    }
+}
+
+impl Not for Ternary {
+    type Output = Self;
+
+    /// Ternary NOT where `NotHave` is considered opposite to itself.
+    fn not(self) -> Self::Output {
+        match self {
+            Self::True => Self::False,
+            Self::False => Self::True,
+            Self::Void => Self::Void,
+        }
+    }
+}
+
+impl From<bool> for Ternary {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
 
 impl<T: Compare> Compare for Option<T> {
     fn gt(&self, comparison: usize) -> Ternary {

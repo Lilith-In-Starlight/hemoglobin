@@ -2,17 +2,15 @@
 name = "hemoglobin"
 description = "Utilities for Bloodless"
 license = "MIT"
-version = "0.8.3"
-edition = "2021"
+version = "0.9.0"
+edition = "2024"
 authors = ["Arity <katie-and@ampersandia.net>"]
 readme = "README.md"
-repository = "https://github.com/Lilith-In-Starlight/hemoglobin"
+repository = "https://github.com/Hemolymph/hemoglobin"
 
 [dependencies]
-chumsky = "0.10.1"
 getrandom = { version = "0.3.3", features = ["wasm_js"] }
-regex = "1.10.5"
-rust-fuzzy-search = "0.1.1"
+regex = "1.11.1"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_regex = "1.1.0"
 

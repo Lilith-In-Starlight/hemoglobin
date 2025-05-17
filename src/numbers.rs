@@ -1,5 +1,6 @@
 pub mod compare;
 pub mod imprecise_ord;
+use crate::numbers::compare::Ternary;
 use std::{
     cmp::Ordering,
     fmt::{Debug, Display},
@@ -11,7 +12,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::search::{query_parser::text_comparison_parser, Ternary};
+// use crate::search::{query_parser::text_comparison_parser, Ternary};
 
 /// Represents a number that may match a range instead of a single number
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -117,6 +118,8 @@ impl Display for Comparison {
     }
 }
 
+pub struct InvalidComparisonString;
+
 impl Comparison {
     pub fn compare<T: Compare + Debug>(&self, a: &T) -> Ternary {
         match self {
@@ -127,6 +130,44 @@ impl Comparison {
             Self::GreaterThanOrEqual(x) => a.gt_eq(*x),
             Self::LowerThanOrEqual(x) => a.lt_eq(*x),
         }
+    }
+
+    /// # Errors
+    /// When given an invalid comparison operator. Importantly, adding spaces within the operator counts as making it invalid.
+    pub fn from_string(string: &str) -> Result<Self, InvalidComparisonString> {
+        string.parse::<usize>().map_or_else(
+            |_| {
+                #[allow(clippy::option_if_let_else)]
+                if let Some(end) = string.strip_prefix(">=") {
+                    end.parse::<usize>()
+                        .map(Self::GreaterThanOrEqual)
+                        .map_err(|_| InvalidComparisonString)
+                } else if let Some(end) = string.strip_prefix("<=") {
+                    end.parse::<usize>()
+                        .map(Self::LowerThanOrEqual)
+                        .map_err(|_| InvalidComparisonString)
+                } else if let Some(end) = string.strip_prefix('>') {
+                    end.parse::<usize>()
+                        .map(Self::GreaterThan)
+                        .map_err(|_| InvalidComparisonString)
+                } else if let Some(end) = string.strip_prefix('<') {
+                    end.parse::<usize>()
+                        .map(Self::LowerThan)
+                        .map_err(|_| InvalidComparisonString)
+                } else if let Some(end) = string.strip_prefix('=') {
+                    end.parse::<usize>()
+                        .map(Self::Equal)
+                        .map_err(|_| InvalidComparisonString)
+                } else if let Some(end) = string.strip_prefix("!=") {
+                    end.parse::<usize>()
+                        .map(Self::NotEqual)
+                        .map_err(|_| InvalidComparisonString)
+                } else {
+                    Err(InvalidComparisonString)
+                }
+            },
+            |x| Ok(Self::Equal(x)),
+        )
     }
 }
 
@@ -189,8 +230,8 @@ impl<'de> Deserialize<'de> for MaybeImprecise {
             {
                 str_as_maybe_var(v).map_or_else(
                     || {
-                        text_comparison_parser(v).map_or_else(
-                            |_| Err(Error::custom("expected a bloodless number or a comparison")),
+                        Comparison::from_string(v).map_or_else(
+                            |_| Err(E::custom("expected a bloodless number or a comparison")),
                             |x| Ok(Self::Value::Imprecise(x)),
                         )
                     },

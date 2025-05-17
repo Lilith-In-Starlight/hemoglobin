@@ -8,14 +8,10 @@ use crate::cards::properties::Read;
 use crate::cards::properties::Text;
 use crate::clean_ascii_keep_case;
 use crate::numbers::MaybeImprecise;
-use crate::search::TextComparison;
-use kins::KinComparison;
 use rich_text::RichString;
 use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
-
-use crate::search::QueryRestriction;
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, Eq)]
 pub enum ImageSource {
@@ -501,57 +497,57 @@ impl Card {
 }
 
 impl CardId {
-    #[must_use]
-    /// Creates a vector of `QueryRestriction`s defined by the `CardId`.
-    pub fn get_as_query(&self) -> Vec<QueryRestriction> {
-        let mut restrictions = vec![];
+    // #[must_use]
+    // Creates a vector of `QueryRestriction`s defined by the `CardId`.
+    // pub fn get_as_query(&self) -> Vec<QueryRestriction> {
+    //     let mut restrictions = vec![];
 
-        if let Some(name) = &self.name {
-            restrictions.push(QueryRestriction::TextComparison(
-                Text::Name,
-                TextComparison::EqualTo(name.clone()),
-            ));
-        }
+    //     if let Some(name) = &self.name {
+    //         restrictions.push(QueryRestriction::TextComparison(
+    //             Text::Name,
+    //             TextComparison::EqualTo(name.clone()),
+    //         ));
+    //     }
 
-        if let Some(kin) = &self.kin {
-            restrictions.push(QueryRestriction::KinComparison(KinComparison::Equal(*kin)));
-        }
+    //     if let Some(kin) = &self.kin {
+    //         restrictions.push(QueryRestriction::KinComparison(KinComparison::Equal(*kin)));
+    //     }
 
-        if let Some(keywords) = &self.keywords {
-            for keyword in keywords {
-                let keyword = TextComparison::EqualTo(keyword.name.clone());
-                restrictions.push(QueryRestriction::HasKw(keyword));
-            }
-        }
+    //     if let Some(keywords) = &self.keywords {
+    //         for keyword in keywords {
+    //             let keyword = TextComparison::EqualTo(keyword.name.clone());
+    //             restrictions.push(QueryRestriction::HasKw(keyword));
+    //         }
+    //     }
 
-        if let Some(cost) = &self.cost {
-            restrictions.push(QueryRestriction::NumberComparison(
-                Number::Cost,
-                cost.as_comparison(),
-            ));
-        }
+    //     if let Some(cost) = &self.cost {
+    //         restrictions.push(QueryRestriction::NumberComparison(
+    //             Number::Cost,
+    //             cost.as_comparison(),
+    //         ));
+    //     }
 
-        if let Some(health) = &self.health {
-            restrictions.push(QueryRestriction::NumberComparison(
-                Number::Health,
-                health.as_comparison(),
-            ));
-        }
+    //     if let Some(health) = &self.health {
+    //         restrictions.push(QueryRestriction::NumberComparison(
+    //             Number::Health,
+    //             health.as_comparison(),
+    //         ));
+    //     }
 
-        if let Some(power) = &self.power {
-            restrictions.push(QueryRestriction::NumberComparison(
-                Number::Power,
-                power.as_comparison(),
-            ));
-        }
+    //     if let Some(power) = &self.power {
+    //         restrictions.push(QueryRestriction::NumberComparison(
+    //             Number::Power,
+    //             power.as_comparison(),
+    //         ));
+    //     }
 
-        if let Some(defense) = &self.defense {
-            restrictions.push(QueryRestriction::NumberComparison(
-                Number::Defense,
-                defense.as_comparison(),
-            ));
-        }
+    //     if let Some(defense) = &self.defense {
+    //         restrictions.push(QueryRestriction::NumberComparison(
+    //             Number::Defense,
+    //             defense.as_comparison(),
+    //         ));
+    //     }
 
-        restrictions
-    }
+    //     restrictions
+    // }
 }
