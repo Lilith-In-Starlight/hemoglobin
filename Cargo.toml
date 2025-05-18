@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/Hemolymph/hemoglobin"
 
 [dependencies]
+const_format = "0.2.34"
 getrandom = { version = "0.3.3", features = ["wasm_js"] }
 regex = "1.11.1"
 serde = { version = "1.0.203", features = ["derive"] }

@@ -1,6 +1,7 @@
 pub mod kins;
 pub mod properties;
 pub mod rich_text;
+pub mod types;
 use crate::cards::kins::Kin;
 use crate::cards::properties::Array;
 use crate::cards::properties::Number;
