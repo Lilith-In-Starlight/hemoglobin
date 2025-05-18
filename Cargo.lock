@@ -45,7 +45,7 @@ dependencies = [
 
 [[package]]
 name = "hemoglobin"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "getrandom",
  "regex",

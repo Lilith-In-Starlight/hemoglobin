@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::numbers::MaybeImprecise;
 
-use super::{kins::Kin, rich_text::RichString, Keyword};
+use super::{Keyword, kins::Kin, rich_text::RichString};
 
 /// This trait is used in card generics. It is useful when you want a function to accept `CardId`s and not only `Card`s.
 pub trait Read {
@@ -30,6 +30,7 @@ pub trait Read {
 #[derive(Debug, Clone, Copy)]
 pub enum Number {
     Cost,
+    FlipCost,
     Health,
     Power,
     Defense,
@@ -42,6 +43,7 @@ impl Display for Number {
             Self::Health => write!(f, "Health"),
             Self::Power => write!(f, "Power"),
             Self::Defense => write!(f, "Defense"),
+            Self::FlipCost => write!(f, "Flip Cost"),
         }
     }
 }

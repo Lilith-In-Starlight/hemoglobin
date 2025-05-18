@@ -8,11 +8,9 @@ use std::{
 };
 
 use serde::{
-    de::{Error, Visitor},
     Deserialize, Deserializer, Serialize,
+    de::{Error, Visitor},
 };
-
-// use crate::search::{query_parser::text_comparison_parser, Ternary};
 
 /// Represents a number that may match a range instead of a single number
 #[derive(Debug, Eq, PartialEq, Clone)]

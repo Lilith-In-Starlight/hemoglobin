@@ -41,6 +41,8 @@ pub struct Card {
     pub description: RichString,
     /// The card's blood cost.
     pub cost: MaybeImprecise,
+    /// The card's flip cost.
+    pub flip_cost: Option<MaybeImprecise>,
     /// The card's health.
     pub health: MaybeImprecise,
     /// The card's overkill protection.
@@ -128,6 +130,7 @@ impl Read for Card {
                     Some(self.power.clone())
                 }
             }
+            Number::FlipCost => self.flip_cost.clone(),
         }
     }
 
@@ -210,6 +213,7 @@ impl Read for &Card {
                     Some(self.power.clone())
                 }
             }
+            Number::FlipCost => self.flip_cost.clone(),
         }
     }
 
@@ -290,6 +294,7 @@ impl Read for CardId {
                     self.power.clone()
                 }
             }
+            Number::FlipCost => self.flip_cost.clone(),
         }
     }
 
@@ -358,6 +363,7 @@ impl Read for &CardId {
                     self.power.clone()
                 }
             }
+            Number::FlipCost => self.flip_cost.clone(),
         }
     }
 
@@ -405,6 +411,8 @@ pub struct CardId {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<MaybeImprecise>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flip_cost: Option<MaybeImprecise>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<RichString>,
     #[serde(skip_serializing_if = "Option::is_none")]
