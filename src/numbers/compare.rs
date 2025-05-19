@@ -23,6 +23,19 @@ impl From<Ternary> for bool {
 impl Ternary {
     /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
     #[must_use]
+    pub fn is_true(self) -> bool {
+        self == Ternary::True
+    }
+    #[must_use]
+    pub fn is_false(self) -> bool {
+        self == Ternary::False
+    }
+    #[must_use]
+    pub fn is_void(self) -> bool {
+        self == Ternary::Void
+    }
+    /// A ternary OR which outputs the highest-valued result between `self` and `b`, where a `Match` is considered highest and `NotHave` is considered lowest.
+    #[must_use]
     pub fn or(self, b: Self) -> Self {
         max(self, b)
     }
@@ -64,11 +77,7 @@ impl Not for Ternary {
 
 impl From<bool> for Ternary {
     fn from(value: bool) -> Self {
-        if value {
-            Self::True
-        } else {
-            Self::False
-        }
+        if value { Self::True } else { Self::False }
     }
 }
 
